@@ -25,6 +25,9 @@ class EnvironmentalFeatures(BaseModel):
     ndvi_trend: float
     forecast_precip_7d_mm: float
     forecast_max_temp_c: float
+    forecast_et0_mm_day: float
+    soil_texture: str = "clay"
+    irrigation_availability: str = "available"
 
 class RotationOption(BaseModel):
     crop: str

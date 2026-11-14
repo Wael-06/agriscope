@@ -1,2 +1,6 @@
 .venv/
-__pycache__/
+__pycache__/*.log
+data/processed/farm_cache.db
+*.log
+**/__pycache__/
+*.pyc

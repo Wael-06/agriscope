@@ -8,6 +8,9 @@ class RecommendationRequest(BaseModel):
     crop: str
     field_size_ha: float
     planting_date: str  # YYYY-MM-DD
+    previous_crop: Optional[str] = None
+    soil_texture: Optional[str] = None
+    irrigation_availability: Optional[str] = None
 
 class RotationOption(BaseModel):
     crop: str

@@ -29,8 +29,10 @@ def _clip(x: float, lo: float = 0.0, hi: float = 1.0) -> float:
     return max(lo, min(hi, x))
 
 
-def season_of_month(month: int) -> str:
-    return "winter" if month in (11, 12, 1, 2, 3, 4) else "summer"
+def season_of_month(month: int, lat: float = 30.0) -> str:
+    north_winter = month in (11, 12, 1, 2, 3, 4)
+    is_winter = north_winter if lat >= 0 else not north_winter
+    return "winter" if is_winter else "summer"
 
 
 def _opposite(season: str) -> str:
@@ -52,7 +54,7 @@ def _current_season(f: EnvironmentalFeatures, cur: dict | None) -> str:
     if cur and len(cur["seasons"]) == 1:
         return cur["seasons"][0]
     month = date.fromisoformat(f.planting_date).month
-    return season_of_month(month)
+    return season_of_month(month, f.lat)
 
 
 # ------------------------------------------------------- hard constraints (B)
@@ -187,7 +189,7 @@ def recommend_rotations(features: EnvironmentalFeatures) -> list[RotationOption]
     cur = db.get(cur_name) if cur_name else None
 
     cur_season = _current_season(f, cur)
-    obs_season = season_of_month(date.fromisoformat(f.planting_date).month)
+    obs_season = season_of_month(date.fromisoformat(f.planting_date).month, f.lat)
     horizon = max(1, int(f.planning_horizon_seasons))
 
     seasons = [cur_season]

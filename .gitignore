@@ -1,6 +1,7 @@
 .venv/
-__pycache__/*.log
-data/processed/farm_cache.db
-*.log
 **/__pycache__/
-*.pyc
+*.py[cod]
+*.log
+.env
+**/*.db
+*.pkl

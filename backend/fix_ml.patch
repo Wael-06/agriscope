@@ -1,0 +1,308 @@
+diff --git a/.gitignore b/.gitignore
+--- a/.gitignore
++++ b/.gitignore
+@@ -1,6 +1,6 @@
+ .venv/
+-__pycache__/*.log
+-data/processed/farm_cache.db
+-*.log
+ **/__pycache__/
+-*.pyc
++*.py[cod]
++*.log
++.env
++**/*.db
+diff --git a/backend/app/engine/irrigation.py b/backend/app/engine/irrigation.py
+--- a/backend/app/engine/irrigation.py
++++ b/backend/app/engine/irrigation.py
+@@ -1,22 +1,11 @@
+ from __future__ import annotations
+-from datetime import datetime, timedelta
+-from app.schemas.contracts import EnvironmentalFeatures
+-
+-def compute_irrigation(features: EnvironmentalFeatures) -> tuple[float, str]:
+-    # Stub logic: Persons 3 & 4 replace with FAO-56 ETc / soil water balance
+-    base_need = 35.0
+-    deficit_factor = max(0.5, 1.2 - features.soil_moisture_root)
+-    mm_per_week = round(max(0.0, (base_need * deficit_factor) - features.forecast_precip_7d_mm), 1)
+-    days_until = 2 if features.soil_moisture_top < 0.35 else 5
+-    next_date = (datetime.utcnow() + timedelta(days=days_until)).strftime("%Y-%m-%d")
+-    return mm_per_week, next_date
+ """Irrigation advisor (Abdo). Transparent FAO-56 formulas, not a trained model.
+ 
+ ETc = Kc * ET0                      (ET0 straight from Open-Meteo, never recomputed)
+ I_net = max(0, ETc_week - P_eff)    (effective rainfall over the 7-day forecast)
+ I_gross = I_net / E                 (E from irrigation_availability)
+ 
+ Public contract (frozen):
+     compute_irrigation(features) -> (irrigation_mm_per_week, next_irrigation_date "YYYY-MM-DD")
+ """
+ 
+@@ -36,4 +25,4 @@
+ # Total available water, mm per metre of root zone (FAO-56 Table 19 ranges, mid-values).
+ _TAW_MM_PER_M = {"sand": 70, "loamy_sand": 90, "sandy_loam": 110, "loam": 140,
+-                 "silt_loam": 160, "clay_loam": 150, "clay": 150}
++                 "silt_loam": 160, "clay_loam": 150, "silty_clay": 160, "clay": 150}
+ 
+@@ -62,5 +51,12 @@
+ def _norm(name: str) -> str:
+     return name.strip().lower().replace(" ", "_").replace("-", "_")
+ 
+ 
++def _soil_key(name: str) -> str:
++    """Accept farmer text and /regions soil labels: 'Alluvial Clay' -> clay, 'Sandy' -> sand."""
++    k = _norm(name)
++    aliases = {"alluvial_clay": "clay", "sandy": "sand"}
++    return aliases.get(k, k)
++
++
+ def _growth_stage(crop_cfg: dict, days_since_planting: int) -> tuple[str, float, float]:
+@@ -119,7 +115,7 @@
+     # Timing: days until root-zone depletion reaches the readily available water (RAW).
+     days_to_next, next_date = None, ""
+     if not rainfed:
+-        taw = _TAW_MM_PER_M.get(features.soil_texture.lower())
++        taw = _TAW_MM_PER_M.get(_soil_key(features.soil_texture))
+         if taw is None:
+             taw = _TAW_MM_PER_M["clay"]
+             notes.append(f"Unknown soil_texture '{features.soil_texture}'; assumed clay.")
+diff --git a/backend/app/engine/rotation.py b/backend/app/engine/rotation.py
+--- a/backend/app/engine/rotation.py
++++ b/backend/app/engine/rotation.py
+@@ -30,7 +30,9 @@
+ 
+ 
+-def season_of_month(month: int) -> str:
+-    return "winter" if month in (11, 12, 1, 2, 3, 4) else "summer"
++def season_of_month(month: int, lat: float = 30.0) -> str:
++    north_winter = month in (11, 12, 1, 2, 3, 4)
++    is_winter = north_winter if lat >= 0 else not north_winter
++    return "winter" if is_winter else "summer"
+ 
+ 
+ def _opposite(season: str) -> str:
+@@ -51,6 +53,6 @@
+     if cur and len(cur["seasons"]) == 1:
+         return cur["seasons"][0]
+     month = date.fromisoformat(f.planting_date).month
+-    return season_of_month(month)
++    return season_of_month(month, f.lat)
+ 
+ 
+@@ -185,5 +187,5 @@
+ 
+     cur_season = _current_season(f, cur)
+-    obs_season = season_of_month(date.fromisoformat(f.planting_date).month)
++    obs_season = season_of_month(date.fromisoformat(f.planting_date).month, f.lat)
+     horizon = max(1, int(f.planning_horizon_seasons))
+ 
+diff --git a/backend/app/engine/yield_estimation.py b/backend/app/engine/yield_estimation.py
+--- a/backend/app/engine/yield_estimation.py
++++ b/backend/app/engine/yield_estimation.py
+@@ -1,65 +1,105 @@
+-import pandas as pd
+-import numpy as np
+-import joblib
++"""Transparent national yield benchmark with environmental stress risk indicators.
+ 
+-class CropYieldPredictor:
+-    def __init__(self, model_path='yield_model.pkl', preprocessor_path='preprocessor.pkl'):
+-        """Load the trained Random Forest model and preprocessor pipeline."""
+-        self.model = joblib.load("models/" + model_path)
+-        self.preprocessor = joblib.load("models/" + preprocessor_path)
++Returns the published national median yield (kg/ha) from yield_baseline.json without
++pretending to produce field-level ML predictions from national annual labels.
++"""
++from __future__ import annotations
+ 
+-        # Define expected categorical and numerical feature columns matching training
+-        self.categorical_features = ['location_name', 'soil', 'Item', 'Season']
+-        self.numerical_features = [
+-            'lat', 'lon', 'avg_temp', 'max_temp', 'min_temp', 
+-            'rain_mm_per_day', 'rel_humidity', 'Month', 'Day', 
+-            'DayOfYear', 'temp_range', 'temp_humidity_interaction'
+-        ]
++from app.engine._reference import load_json
++from app.schemas.contracts import EnvironmentalFeatures
+ 
+-    def _engineer_features(self, df: pd.DataFrame) -> pd.DataFrame:
+-        """Apply the same feature engineering steps used during training."""
+-        df = df.copy()
+-        
+-        # Create Date and DayOfYear from Month and Day (using placeholder year 2024)
+-        date_series = pd.to_datetime({'year': 2024, 'month': df['Month'], 'day': df['Day']})
+-        df['DayOfYear'] = date_series.dt.dayofyear
+-        
+-        # Determine Season
+-        df['Season'] = df['Month'].apply(
+-            lambda m: 'Winter' if m in [12, 1, 2] else 
+-                     ('Spring' if m in [3, 4, 5] else 
+-                     ('Summer' if m in [6, 7, 8] else 'Autumn'))
+-        )
+-        
+-        # Temperature Range and Interaction
+-        df['temp_range'] = df['max_temp'] - df['min_temp']
+-        df['temp_humidity_interaction'] = df['avg_temp'] * (df['rel_humidity'] / 100.0)
+-        
+-        return df
++_ALIASES = {
++    "rice_paddy": "rice",
++    "paddy": "rice",
++    "tomatoes": "tomato",
++    "cotton_seed": "cotton",
++}
+ 
+-    def predict(self, input_data: dict | pd.DataFrame) -> np.ndarray:
+-        """
+-        Takes raw dictionary or DataFrame input, processes features, 
+-        and returns the model's predicted yield (hg/ha).
+-        """
+-        # Convert dictionary input to a single-row DataFrame if necessary
+-        if isinstance(input_data, dict):
+-            input_df = pd.DataFrame([input_data])
+-        elif isinstance(input_data, pd.DataFrame):
+-            input_df = input_data.copy()
+-        else:
+-            raise ValueError("Input data must be a dictionary or a pandas DataFrame.")
+-            
+-        # 1. Engineer features
+-        processed_df = self._engineer_features(input_df)
+-        
+-        # 2. Extract required features in exact order
+-        X_input = processed_df[self.categorical_features + self.numerical_features]
+-        
+-        # 3. Transform features using saved preprocessor
+-        X_transformed = self.preprocessor.transform(X_input)
+-        
+-        # 4. Predict yield
+-        predictions = self.model.predict(X_transformed)
+-        
+-        return predictions
++_HEAT_C = {
++    "wheat": 34.0,
++    "maize": 35.0,
++    "rice": 35.0,
++    "tomato": 32.0,
++    "cotton": 38.0,
++}
++
++
++def _key(name: str) -> str:
++    k = name.strip().lower().replace(" ", "_").replace(",", "")
++    return _ALIASES.get(k, k)
++
++
++def _check_ranges(features: EnvironmentalFeatures) -> list[str]:
++    bad: list[str] = []
++    if not -1.0 <= features.ndvi_current <= 1.0:
++        bad.append(f"ndvi_current ({features.ndvi_current}) outside [-1.0, 1.0]")
++    if not 0.0 <= features.soil_moisture_root <= 1.0:
++        bad.append(f"soil_moisture_root ({features.soil_moisture_root}) outside [0.0, 1.0]")
++    if not 0.0 <= features.soil_moisture_top <= 1.0:
++        bad.append(f"soil_moisture_top ({features.soil_moisture_top}) outside [0.0, 1.0]")
++    if not -60.0 <= features.avg_temp_c <= 65.0:
++        bad.append(f"avg_temp_c ({features.avg_temp_c}) outside [-60, 65]")
++    return bad
++
++
++def estimate_yield_details(features: EnvironmentalFeatures) -> dict:
++    base = load_json("yield_baseline.json")
++    crop = _key(features.crop)
++    b = base.get(crop)
++    if not b or b.get("n_years", 0) == 0:
++        note = (
++            f"No estimate available: no yield history for '{features.crop}' in reference data "
++            "(national median benchmark only, not a trained model or field-level prediction)."
++        )
++        return {
++            "estimate_kg_ha": 0.0,
++            "confidence": "Low",
++            "risk": "Unknown",
++            "flags": [],
++            "in_range": True,
++            "note": note,
++        }
++
++    est = float(b.get("median_kg_ha") or b.get("recent_mean_kg_ha") or 0.0)
++    range_issues = _check_ranges(features)
++    in_range = len(range_issues) == 0
++
++    flags: list[str] = []
++    if features.max_temp_c >= _HEAT_C.get(crop, 35.0):
++        flags.append("heat stress")
++    if features.ndvi_trend < -0.05:
++        flags.append("falling NDVI")
++    if features.irrigation_availability == "none" and features.soil_moisture_root < 0.30:
++        flags.append("dry root zone without irrigation")
++    if (
++        features.et0_mm_day
++        and features.aeti_mm_day is not None
++        and features.et0_mm_day > 0
++        and (features.aeti_mm_day / features.et0_mm_day) < 0.70
++    ):
++        flags.append("evapotranspiration deficit")
++
++    risk = "High" if len(flags) >= 2 else "Moderate" if flags else "Low"
++    conf = "Low"
++
++    note = (
++        f"Based on a national median benchmark ({est:.0f} kg/ha across {b['n_years']} years), "
++        "not a trained model and not a field-level prediction. "
++        f"Current stress risk: {risk}"
++        + (f" ({', '.join(flags)})." if flags else ".")
++    )
++    if range_issues:
++        note += f" Input check warning: {'; '.join(range_issues)}."
++
++    return {
++        "estimate_kg_ha": round(est, 1),
++        "confidence": conf,
++        "risk": risk,
++        "flags": flags,
++        "in_range": in_range,
++        "note": note,
++    }
++
++
++def estimate_yield(features: EnvironmentalFeatures) -> tuple[float, str, str]:
++    d = estimate_yield_details(features)
++    return d["estimate_kg_ha"], d["confidence"], d["note"]
+diff --git a/backend/app/schemas/contracts.py b/backend/app/schemas/contracts.py
+--- a/backend/app/schemas/contracts.py
++++ b/backend/app/schemas/contracts.py
+@@ -5,7 +5,10 @@
+ class RecommendationRequest(BaseModel):
+     lat: float
+     lon: float
+     crop: str
+     field_size_ha: float
+     planting_date: str  # YYYY-MM-DD
++    previous_crop: Optional[str] = None
++    soil_texture: Optional[str] = None
++    irrigation_availability: Optional[str] = None
+ 
+@@ -37,9 +40,13 @@
+     rotation_priority_weights: dict = Field(default_factory=lambda: {
+         "soil_health": 0.35,
+         "water_demand": 0.30,
+         "climate_suitability": 0.25,
+         "rotation_diversity": 0.10,
+     })
++    et0_mm_day: Optional[float] = None
++    aeti_mm_day: Optional[float] = None
++    data_sources: List[str] = Field(default_factory=list)
++    is_fallback: bool = False
+ 
+ 
+ class RecommendationResponse(BaseModel):
+diff --git a/frontend/js/api.js b/frontend/js/api.js
+--- a/frontend/js/api.js
++++ b/frontend/js/api.js
+@@ -1,4 +1,6 @@
+-const API_BASE_URL = "http://127.0.0.1:8000";
++const API_BASE_URL = (
++  window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost"
++) ? "http://127.0.0.1:8000" : "";
+ 
+ const KC_TABLE = {
+   wheat: { kc: 1.15, stage: "Mid-season" },

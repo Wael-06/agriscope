@@ -144,9 +144,17 @@ function renderRecommendationDashboard(data, payload, isLive) {
   document.getElementById("res-irrig-date").textContent = data.next_irrigation_date;
 
   const badgeEl = document.getElementById("irrig-mode-badge");
-  badgeEl.textContent = isLive
-    ? "Illustrative example / Prototype advisory (verify field moisture)"
-    : "Illustrative example only; not a live recommendation";
+  const rotationBadgeEl = document.getElementById("rotation-mode-badge");
+  const fallbackSources = data.fallback_sources || [];
+  const fallbackMessage = !isLive
+    ? "Offline demo results; values are placeholders, not field recommendations."
+    : fallbackSources.length
+      ? `Using fallback data for: ${fallbackSources.join(", ")}. Verify before acting.`
+      : "";
+  for (const badge of [badgeEl, rotationBadgeEl]) {
+    badge.textContent = fallbackMessage;
+    badge.classList.toggle("hidden", !fallbackMessage);
+  }
 
   const cropMeta = KC_TABLE[payload.crop] || { kc: 1.15, stage: "Mid-season" };
   const et0 = 4.2;
@@ -208,6 +216,15 @@ function renderRotationBaseline(score, previousCrop, currentCrop, isLive) {
 }
 
 function renderEarthIntelligenceCharts(trends) {
+  const fallbackNote = document.getElementById("trends-fallback-note");
+  const sources = trends.fallback_sources || [];
+  fallbackNote.textContent = trends.offline
+    ? "Offline demo charts are placeholders, not live satellite or weather observations."
+    : sources.length
+      ? `Fallback chart data used for: ${sources.join(", ")}.`
+      : "";
+  fallbackNote.classList.toggle("hidden", !fallbackNote.textContent);
+
   const climateCtx = document.getElementById("climateChart").getContext("2d");
   const ndviCtx = document.getElementById("ndviChart").getContext("2d");
   const forecastCtx = document.getElementById("forecastChart").getContext("2d");

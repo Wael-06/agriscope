@@ -23,7 +23,7 @@ function setApiStatus(isLive) {
   const badge = document.getElementById("api-status");
   if (!badge) return;
   if (isLive) {
-    badge.textContent = "Backend Live (127.0.0.1:8000)";
+    badge.textContent = "Backend Connected (127.0.0.1:8000)";
     badge.className = "status-badge status-live";
   } else {
     badge.textContent = "Contract Stub Mode (Local Fallback)";
@@ -100,11 +100,24 @@ async function fetchTrends(lat, lon) {
     return {
       climate_history: climate,
       ndvi_history: ndvi,
-      forecast_7d: forecast
+      forecast_7d: forecast,
+      fallback_sources: [
+        ...new Set([
+          ...(data.fallback_sources || []),
+          ...(!data.climate_history?.dates?.length ? ["NASA POWER"] : []),
+          ...(!data.ndvi_history?.dates?.length ? ["MODIS NDVI"] : []),
+          ...(!data.forecast_7d?.dates?.length ? ["Open-Meteo"] : [])
+        ])
+      ],
+      offline: false
     };
   } catch (err) {
     setApiStatus(false);
-    return fallback;
+    return {
+      ...fallback,
+      fallback_sources: ["NASA POWER", "MODIS NDVI", "Open-Meteo"],
+      offline: true
+    };
   }
 }
 

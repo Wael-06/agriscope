@@ -46,11 +46,21 @@ def _fallback_soil_moisture(soil_texture: str | None,
 def create_recommendation(req: RecommendationRequest):
     month = int(req.planting_date[5:7])
     source_note = ""
+    fallback_sources = []
 
     try:
         power = get_power_summary(req.lat, req.lon)
         modis = get_ndvi_summary(req.lat, req.lon)
         meteo = get_weather_forecast(req.lat, req.lon)
+        fallback_sources = [
+            source
+            for source, data in (
+                ("NASA POWER", power),
+                ("MODIS NDVI", modis),
+                ("Open-Meteo", meteo),
+            )
+            if data.get("_fallback")
+        ]
 
         env = {
             "avg_temp_c": power["avg_temp_c"],
@@ -71,6 +81,7 @@ def create_recommendation(req: RecommendationRequest):
             "Recommendation data fetch failed for %s,%s; using fallback: %s",
             req.lat, req.lon, e,
         )
+        fallback_sources = ["NASA POWER", "MODIS NDVI", "Open-Meteo"]
         clim = fallback_forecast(req.lat, req.lon, month)
         source_note = f" Weather is {clim['_source']}, not live data."
         source_note += " Soil moisture is estimated from soil texture and irrigation access."
@@ -113,6 +124,7 @@ def create_recommendation(req: RecommendationRequest):
         next_irrigation_date=next_date,
         rotation_recommendations=rotations,
         baseline_score=baseline_score,
+        fallback_sources=fallback_sources,
         yield_estimate_kg_ha=yield_kg,
         confidence=confidence,
         notes=(y_note + source_note).strip(),

@@ -63,6 +63,7 @@ def get_power_summary(lat: float, lon: float) -> dict:
         import logging
         logging.warning(f"nasa_power fetch failed for {rlat},{rlon}: {e}")
         return {
+            "_fallback": True,
             "avg_temp_c": 22.4,
             "max_temp_c": 28.5,
             "total_precip_mm": 3.8,

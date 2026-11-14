@@ -38,6 +38,7 @@ def get_weather_forecast(lat: float, lon: float) -> dict:
         import logging
         logging.warning(f"open_meteo fetch failed for {rlat},{rlon}: {e}")
         return {
+            "_fallback": True,
             "forecast_et0_mm_day": 4.2,
             "forecast_precip_7d_mm": 0.0,
             "forecast_max_temp_c": 26.0,

@@ -131,9 +131,7 @@
           <div class="card">
             <div class="card-header">
               <h3>Irrigation Advisor</h3>
-              <span id="irrig-mode-badge" class="illustrative-tag">
-                Illustrative example only; not a live recommendation
-              </span>
+              <span id="irrig-mode-badge" class="illustrative-tag hidden"></span>
             </div>
 
             <div class="highlight-metrics">
@@ -181,9 +179,7 @@
           <div class="card">
             <div class="card-header">
               <h3>Crop Rotation Comparison</h3>
-              <span class="illustrative-tag">
-                Rankings depend on chosen weights (illustrative of interaction)
-              </span>
+              <span id="rotation-mode-badge" class="illustrative-tag hidden"></span>
             </div>
 
             <div class="sliders-container">
@@ -244,6 +240,7 @@
           <div class="section-title-row">
             <h2>Earth Intelligence View (NASA POWER, MODIS NDVI & 7-Day Forecast)</h2>
           </div>
+          <p id="trends-fallback-note" class="advisory-note hidden"></p>
           <div class="charts-grid">
             <div class="chart-card">
               <h4>30-Day Temperature & Precipitation (NASA POWER)</h4>

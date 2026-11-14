@@ -57,6 +57,7 @@ class RecommendationResponse(BaseModel):
     next_irrigation_date: str
     rotation_recommendations: List[RotationOption]
     baseline_score: Optional[float] = None
+    fallback_sources: List[str] = Field(default_factory=list)
     yield_estimate_kg_ha: float
     confidence: str
     notes: str

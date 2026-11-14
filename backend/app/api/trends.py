@@ -15,4 +15,13 @@ def get_trends(lat: float, lon: float):
         "climate_history": power["series"],
         "ndvi_history": modis["series"],
         "forecast_7d": meteo["series"],
+        "fallback_sources": [
+            source
+            for source, data in (
+                ("NASA POWER", power),
+                ("MODIS NDVI", modis),
+                ("Open-Meteo", meteo),
+            )
+            if data.get("_fallback")
+        ],
     }

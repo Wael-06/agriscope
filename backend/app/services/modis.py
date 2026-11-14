@@ -54,6 +54,7 @@ def get_ndvi_summary(lat: float, lon: float) -> dict:
         import logging
         logging.warning(f"modis fetch failed for {rlat},{rlon}: {e}")
         return {
+            "_fallback": True,
             "ndvi_current": 0.48,
             "ndvi_trend": 0.02,
             "series": {"dates": [], "ndvi": []},

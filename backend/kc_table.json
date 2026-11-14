@@ -1,0 +1,9 @@
+{
+  "_source": "FAO Irrigation & Drainage Paper 56, Tables 11 (stage lengths), 12 (Kc), 22 (root depth, p). Values entered from memory of the tables: VERIFY against the paper before the demo. Stage lengths are approximate Nile Delta-style seasons, not exact local calendars.",
+  "wheat":          {"kc_ini": 0.30, "kc_mid": 1.15, "kc_end": 0.25, "stage_days": [20, 30, 60, 30], "root_max_m": 1.5, "p": 0.55},
+  "maize":          {"kc_ini": 0.30, "kc_mid": 1.20, "kc_end": 0.35, "stage_days": [20, 35, 40, 30], "root_max_m": 1.0, "p": 0.55},
+  "rice":           {"kc_ini": 1.05, "kc_mid": 1.20, "kc_end": 0.90, "stage_days": [30, 30, 60, 30], "root_max_m": 0.5, "p": 0.20},
+  "cotton":         {"kc_ini": 0.35, "kc_mid": 1.15, "kc_end": 0.70, "stage_days": [30, 50, 60, 55], "root_max_m": 1.0, "p": 0.65},
+  "berseem_clover": {"kc_ini": 0.40, "kc_mid": 1.15, "kc_end": 1.10, "stage_days": [20, 30, 60, 30], "root_max_m": 0.9, "p": 0.55},
+  "tomato":         {"kc_ini": 0.60, "kc_mid": 1.15, "kc_end": 0.80, "stage_days": [30, 40, 40, 25], "root_max_m": 0.7, "p": 0.40}
+}

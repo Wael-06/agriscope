@@ -1,9 +1,11 @@
+import os
 import sqlite3
 import json
 from pathlib import Path
 from typing import Optional, Any
 
-DB_PATH = Path(__file__).resolve().parents[3] / "data" / "processed" / "farm_cache.db"
+DEFAULT_DB = Path(__file__).resolve().parents[2] / "farm_cache.db"
+DB_PATH = Path(os.getenv("CACHE_DB_PATH", str(DEFAULT_DB)))
 
 def _get_conn() -> sqlite3.Connection:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)

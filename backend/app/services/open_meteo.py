@@ -13,7 +13,7 @@ def get_weather_forecast(lat: float, lon: float) -> dict:
     params = {
         "latitude": rlat,
         "longitude": rlon,
-        "daily": "temperature_2m_max,precipitation_sum",
+        "daily": "temperature_2m_max,precipitation_sum,et0_fao_evapotranspiration",
         "forecast_days": 7,
         "timezone": "auto",
     }
@@ -21,7 +21,9 @@ def get_weather_forecast(lat: float, lon: float) -> dict:
         resp = requests.get(METEO_URL, params=params, timeout=8)
         resp.raise_for_status()
         daily = resp.json()["daily"]
+        et0_values = daily.get("et0_fao_evapotranspiration") or [4.2]
         result = {
+            "forecast_et0_mm_day": round(sum(et0_values) / len(et0_values), 2),
             "forecast_precip_7d_mm": round(sum(daily["precipitation_sum"]), 2),
             "forecast_max_temp_c": round(max(daily["temperature_2m_max"]), 2),
             "series": {
@@ -33,4 +35,9 @@ def get_weather_forecast(lat: float, lon: float) -> dict:
         set_cached(cache_key, result)
         return result
     except Exception:
-        return {"forecast_precip_7d_mm": 0.0, "forecast_max_temp_c": 26.0, "series": {}}
+        return {
+            "forecast_et0_mm_day": 4.2,
+            "forecast_precip_7d_mm": 0.0,
+            "forecast_max_temp_c": 26.0,
+            "series": {},
+        }

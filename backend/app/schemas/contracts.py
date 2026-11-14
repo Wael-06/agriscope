@@ -41,3 +41,5 @@ class RecommendationResponse(BaseModel):
     yield_estimate_kg_ha: float
     confidence: str
     notes: str
+    soil_texture: str = "clay"
+    irrigation_availability: str = "available"

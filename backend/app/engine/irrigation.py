@@ -1,15 +1,3 @@
-from __future__ import annotations
-from datetime import datetime, timedelta
-from app.schemas.contracts import EnvironmentalFeatures
-
-def compute_irrigation(features: EnvironmentalFeatures) -> tuple[float, str]:
-    # Stub logic: Persons 3 & 4 replace with FAO-56 ETc / soil water balance
-    base_need = 35.0
-    deficit_factor = max(0.5, 1.2 - features.soil_moisture_root)
-    mm_per_week = round(max(0.0, (base_need * deficit_factor) - features.forecast_precip_7d_mm), 1)
-    days_until = 2 if features.soil_moisture_top < 0.35 else 5
-    next_date = (datetime.utcnow() + timedelta(days=days_until)).strftime("%Y-%m-%d")
-    return mm_per_week, next_date
 """Irrigation advisor (Abdo). Transparent FAO-56 formulas, not a trained model.
 
 ETc = Kc * ET0                      (ET0 straight from Open-Meteo, never recomputed)
@@ -19,6 +7,7 @@ I_gross = I_net / E                 (E from irrigation_availability)
 Public contract (frozen):
     compute_irrigation(features) -> (irrigation_mm_per_week, next_irrigation_date "YYYY-MM-DD")
 """
+from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
@@ -28,14 +17,15 @@ from pathlib import Path
 from app.schemas.contracts import EnvironmentalFeatures
 
 _KC = {k: v for k, v in json.loads(
-    (Path(__file__).resolve().parents[3] / "data" / "kc_table.json").read_text()).items()
+    (Path(__file__).parent / "data" / "kc_table.json").read_text()).items()
     if not k.startswith("_")}
+
 # Efficiency by irrigation_availability. "none" = rainfed.
 _EFFICIENCY = {"available": 0.75, "limited": 0.60}
 
 # Total available water, mm per metre of root zone (FAO-56 Table 19 ranges, mid-values).
 _TAW_MM_PER_M = {"sand": 70, "loamy_sand": 90, "sandy_loam": 110, "loam": 140,
-                 "silt_loam": 160, "clay_loam": 150, "clay": 150}
+                 "silt_loam": 160, "clay_loam": 150, "silty_clay": 160, "clay": 150}
 
 _RAIN_EFFECTIVE_FRACTION = 0.8   # simple assumption: 20% lost to runoff/evaporation
 _MAX_DAYS_TO_NEXT = 14
@@ -60,6 +50,13 @@ class IrrigationDetail:
 
 def _norm(name: str) -> str:
     return name.strip().lower().replace(" ", "_").replace("-", "_")
+
+
+def _soil_key(name: str) -> str:
+    """Accept farmer text and /regions soil labels: 'Alluvial Clay' -> clay, 'Sandy' -> sand."""
+    k = _norm(name)
+    aliases = {"alluvial_clay": "clay", "sandy": "sand"}
+    return aliases.get(k, k)
 
 
 def _growth_stage(crop_cfg: dict, days_since_planting: int) -> tuple[str, float, float]:
@@ -119,7 +116,7 @@ def compute_irrigation_detail(features: EnvironmentalFeatures,
     # Timing: days until root-zone depletion reaches the readily available water (RAW).
     days_to_next, next_date = None, ""
     if not rainfed:
-        taw = _TAW_MM_PER_M.get(features.soil_texture.lower())
+        taw = _TAW_MM_PER_M.get(_soil_key(features.soil_texture))
         if taw is None:
             taw = _TAW_MM_PER_M["clay"]
             notes.append(f"Unknown soil_texture '{features.soil_texture}'; assumed clay.")

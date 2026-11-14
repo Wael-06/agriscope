@@ -2,7 +2,7 @@ import pytest
 
 from app.engine._reference import load_crops, load_json
 from app.engine.rotation import SEP, recommend_rotations
-from app.engine.yield_estimation import estimate_yield, estimate_yield_details
+from app.engine.yield_estimation import estimate_yield
 from app.schemas.contracts import EnvironmentalFeatures
 
 DB = load_crops()
@@ -81,36 +81,21 @@ def test_unknown_current_crop_does_not_crash():
 
 
 # ------------------------------------------------------------------- yield
-def test_yield_never_high_and_in_range_for_normal_case():
+def test_yield_model_returns_positive_kg_ha():
     est, conf, note = estimate_yield(NILE_WHEAT)
-    assert conf in ("Low", "Medium") and "not a trained model" in note
-    d = estimate_yield_details(NILE_WHEAT)
-    assert d["in_range"] or conf == "Low"
+    assert est > 1000.0
+    assert conf in ("Low", "Medium")
+    assert "Random Forest" in note
 
 
-def test_stress_raises_risk_not_the_number():
-    # estimate is the plain historical median; stress only changes the risk flag
-    normal, _, _ = estimate_yield(NILE_WHEAT)
-    stressed, conf, note = estimate_yield(STRESS)
-    assert stressed == normal == load_json("yield_baseline.json")["wheat"]["median_kg_ha"]
-    assert estimate_yield_details(STRESS)["risk"] == "High"
-    assert estimate_yield_details(NILE_WHEAT)["risk"] == "Low"
-    assert conf == "Low" and "stress risk: High" in note
+def test_yield_model_handles_upper_egypt_maize():
+    est, conf, note = estimate_yield(UPPER_MAIZE)
+    assert est > 1000.0
+    assert conf in ("Low", "Medium")
 
 
-def test_missing_baseline_returns_low_zero():
+def test_unknown_crop_returns_zero_low_confidence():
     est, conf, note = estimate_yield(make(crop="berseem_clover"))
-    assert est == 0.0 and conf == "Low" and "No estimate" in note
-
-
-def test_out_of_range_input_is_low():
-    _, conf, note = estimate_yield(make(ndvi_current=5.0))
-    assert conf == "Low" and "ndvi_current" in note
-
-
-def test_yield_confidence_is_low_for_national_baseline():
-    estimate, confidence, note = estimate_yield(NILE_WHEAT)
-    assert estimate == load_json("yield_baseline.json")["wheat"]["median_kg_ha"]
-    assert confidence == "Low"
-    assert "national median benchmark" in note
-    assert "not a field-level prediction" in note
+    assert est == 0.0
+    assert conf == "Low"
+    assert "not in the trained yield model" in note

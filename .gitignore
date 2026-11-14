@@ -3,5 +3,4 @@
 *.py[cod]
 *.log
 .env
-**/*.db
-*.pkl
+**/farm_cache.db

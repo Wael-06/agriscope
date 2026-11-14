@@ -43,6 +43,8 @@ class EnvironmentalFeatures(BaseModel):
         "climate_suitability": 0.25,
         "rotation_diversity": 0.10,
     })
+    min_temp_c: Optional[float] = None
+    rel_humidity_pct: Optional[float] = None
 
 
 class RecommendationResponse(BaseModel):

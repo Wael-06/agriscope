@@ -1,6 +1,13 @@
+<<<<<<< HEAD
 .venv/
 __pycache__/*.log
 data/processed/farm_cache.db
 *.log
 **/__pycache__/
 *.pyc
+=======
+.venv
+__pycache__
+*.pyc
+.git
+>>>>>>> a27bb57 (preparing for deployment)

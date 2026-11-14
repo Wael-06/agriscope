@@ -1,13 +1,23 @@
+import os
+import shutil
 import sqlite3
 import json
 from pathlib import Path
 from typing import Optional, Any
 
-DB_PATH = Path(__file__).resolve().parents[3] / "data" / "processed" / "farm_cache.db"
+BUNDLED_DB = Path(__file__).resolve().parents[2] / "farm_cache.db"
+RUNTIME_DB = Path(os.getenv("CACHE_DB_PATH", "/tmp/farm_cache.db"))
+
+def _ensure_db() -> Path:
+    if not RUNTIME_DB.exists() and BUNDLED_DB.exists():
+        RUNTIME_DB.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(BUNDLED_DB, RUNTIME_DB)
+    return RUNTIME_DB
 
 def _get_conn() -> sqlite3.Connection:
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
+    db_path = _ensure_db()
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(db_path)
     conn.execute("""
         CREATE TABLE IF NOT EXISTS api_cache (
             cache_key TEXT PRIMARY KEY,

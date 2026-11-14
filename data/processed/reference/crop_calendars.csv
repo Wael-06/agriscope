@@ -1,0 +1,10 @@
+crop,season,plant_months,harvest_months
+wheat,winter,10|11,4|5
+berseem_clover,winter,10|11,4|5
+faba_bean,winter,10|11,3|4
+maize,summer,5|6,9|10
+rice,summer,5|6,9|10
+cotton,summer,4|5,9|10
+sorghum,summer,5|6,9|10
+tomato,winter,10|11,3|4
+tomato,summer,4|5,8|9

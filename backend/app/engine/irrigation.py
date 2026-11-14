@@ -16,9 +16,13 @@ from pathlib import Path
 
 from app.schemas.contracts import EnvironmentalFeatures
 
-_KC = {k: v for k, v in json.loads(
-    (Path(__file__).parent / "data" / "kc_table.json").read_text()).items()
-    if not k.startswith("_")}
+_KC_CANDIDATES = [
+    Path(__file__).parent / "data" / "kc_table.json",
+    Path(__file__).resolve().parents[3] / "data" / "kc_table.json",
+    Path(__file__).resolve().parents[2] / "kc_table.json",
+]
+_KC_PATH = next((p for p in _KC_CANDIDATES if p.exists()), _KC_CANDIDATES[1])
+_KC = {k: v for k, v in json.loads(_KC_PATH.read_text(encoding="utf-8")).items() if not k.startswith("_")}
 
 # Efficiency by irrigation_availability. "none" = rainfed.
 _EFFICIENCY = {"available": 0.75, "limited": 0.60}

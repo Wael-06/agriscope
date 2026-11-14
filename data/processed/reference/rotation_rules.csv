@@ -1,0 +1,65 @@
+prev_crop,next_crop,allowed,soil_score,reason
+wheat,wheat,false,0.0,Same crop back-to-back increases soil-borne disease pressure
+wheat,maize,true,0.45,Same botanical family transition
+wheat,rice,true,0.45,Same botanical family transition
+wheat,cotton,true,0.72,Cross-family rotation breaks pest and pathogen cycles
+wheat,berseem_clover,true,1.0,berseem_clover fixes nitrogen after heavy feeder wheat
+wheat,faba_bean,true,1.0,faba_bean fixes nitrogen after heavy feeder wheat
+wheat,sorghum,true,0.45,Same botanical family transition
+wheat,tomato,true,0.72,Cross-family rotation breaks pest and pathogen cycles
+maize,wheat,true,0.45,Same botanical family transition
+maize,maize,false,0.0,Same crop back-to-back increases soil-borne disease pressure
+maize,rice,true,0.45,Same botanical family transition
+maize,cotton,true,0.72,Cross-family rotation breaks pest and pathogen cycles
+maize,berseem_clover,true,1.0,berseem_clover fixes nitrogen after heavy feeder maize
+maize,faba_bean,true,1.0,faba_bean fixes nitrogen after heavy feeder maize
+maize,sorghum,true,0.45,Same botanical family transition
+maize,tomato,true,0.72,Cross-family rotation breaks pest and pathogen cycles
+rice,wheat,true,0.45,Same botanical family transition
+rice,maize,true,0.45,Same botanical family transition
+rice,rice,false,0.0,Same crop back-to-back increases soil-borne disease pressure
+rice,cotton,true,0.72,Cross-family rotation breaks pest and pathogen cycles
+rice,berseem_clover,true,1.0,berseem_clover fixes nitrogen after heavy feeder rice
+rice,faba_bean,true,1.0,faba_bean fixes nitrogen after heavy feeder rice
+rice,sorghum,true,0.45,Same botanical family transition
+rice,tomato,true,0.72,Cross-family rotation breaks pest and pathogen cycles
+cotton,wheat,true,0.72,Cross-family rotation breaks pest and pathogen cycles
+cotton,maize,true,0.72,Cross-family rotation breaks pest and pathogen cycles
+cotton,rice,true,0.72,Cross-family rotation breaks pest and pathogen cycles
+cotton,cotton,false,0.0,Same crop back-to-back increases soil-borne disease pressure
+cotton,berseem_clover,true,1.0,berseem_clover fixes nitrogen after heavy feeder cotton
+cotton,faba_bean,true,1.0,faba_bean fixes nitrogen after heavy feeder cotton
+cotton,sorghum,true,0.72,Cross-family rotation breaks pest and pathogen cycles
+cotton,tomato,true,0.72,Cross-family rotation breaks pest and pathogen cycles
+berseem_clover,wheat,true,0.88,wheat utilizes residual nitrogen fixed by berseem_clover
+berseem_clover,maize,true,0.88,maize utilizes residual nitrogen fixed by berseem_clover
+berseem_clover,rice,true,0.88,rice utilizes residual nitrogen fixed by berseem_clover
+berseem_clover,cotton,true,0.88,cotton utilizes residual nitrogen fixed by berseem_clover
+berseem_clover,berseem_clover,false,0.0,Same crop back-to-back increases soil-borne disease pressure
+berseem_clover,faba_bean,true,0.9,faba_bean enriches soil nitrogen
+berseem_clover,sorghum,true,0.72,Cross-family rotation breaks pest and pathogen cycles
+berseem_clover,tomato,true,0.88,tomato utilizes residual nitrogen fixed by berseem_clover
+faba_bean,wheat,true,0.88,wheat utilizes residual nitrogen fixed by faba_bean
+faba_bean,maize,true,0.88,maize utilizes residual nitrogen fixed by faba_bean
+faba_bean,rice,true,0.88,rice utilizes residual nitrogen fixed by faba_bean
+faba_bean,cotton,true,0.88,cotton utilizes residual nitrogen fixed by faba_bean
+faba_bean,berseem_clover,true,0.9,berseem_clover enriches soil nitrogen
+faba_bean,faba_bean,false,0.0,Same crop back-to-back increases soil-borne disease pressure
+faba_bean,sorghum,true,0.72,Cross-family rotation breaks pest and pathogen cycles
+faba_bean,tomato,true,0.88,tomato utilizes residual nitrogen fixed by faba_bean
+sorghum,wheat,true,0.45,Same botanical family transition
+sorghum,maize,true,0.45,Same botanical family transition
+sorghum,rice,true,0.45,Same botanical family transition
+sorghum,cotton,true,0.72,Cross-family rotation breaks pest and pathogen cycles
+sorghum,berseem_clover,true,0.9,berseem_clover enriches soil nitrogen
+sorghum,faba_bean,true,0.9,faba_bean enriches soil nitrogen
+sorghum,sorghum,false,0.0,Same crop back-to-back increases soil-borne disease pressure
+sorghum,tomato,true,0.72,Cross-family rotation breaks pest and pathogen cycles
+tomato,wheat,true,0.72,Cross-family rotation breaks pest and pathogen cycles
+tomato,maize,true,0.72,Cross-family rotation breaks pest and pathogen cycles
+tomato,rice,true,0.72,Cross-family rotation breaks pest and pathogen cycles
+tomato,cotton,true,0.72,Cross-family rotation breaks pest and pathogen cycles
+tomato,berseem_clover,true,1.0,berseem_clover fixes nitrogen after heavy feeder tomato
+tomato,faba_bean,true,1.0,faba_bean fixes nitrogen after heavy feeder tomato
+tomato,sorghum,true,0.72,Cross-family rotation breaks pest and pathogen cycles
+tomato,tomato,false,0.0,Same crop back-to-back increases soil-borne disease pressure

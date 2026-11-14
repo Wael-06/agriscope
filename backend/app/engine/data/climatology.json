@@ -1,0 +1,422 @@
+{
+  "nile_delta": {
+    "lat": 31.11,
+    "lon": 30.94,
+    "soil": "Alluvial Clay",
+    "years_of_data": 10,
+    "et0_method": "Hargreaves (temperature-only), approximate",
+    "monthly": {
+      "1": {
+        "tavg_c": 14.5,
+        "tmax_c": 21.0,
+        "tmin_c": 8.5,
+        "rain_mm_per_week": 3.2,
+        "et0_mm_day": 2.45,
+        "humidity_pct": 64.0
+      },
+      "2": {
+        "tavg_c": 16.0,
+        "tmax_c": 22.5,
+        "tmin_c": 10.0,
+        "rain_mm_per_week": 3.2,
+        "et0_mm_day": 2.83,
+        "humidity_pct": 64.0
+      },
+      "3": {
+        "tavg_c": 19.0,
+        "tmax_c": 25.5,
+        "tmin_c": 13.0,
+        "rain_mm_per_week": 3.2,
+        "et0_mm_day": 3.58,
+        "humidity_pct": 64.0
+      },
+      "4": {
+        "tavg_c": 23.0,
+        "tmax_c": 29.5,
+        "tmin_c": 17.0,
+        "rain_mm_per_week": 0.0,
+        "et0_mm_day": 4.58,
+        "humidity_pct": 64.0
+      },
+      "5": {
+        "tavg_c": 26.5,
+        "tmax_c": 33.0,
+        "tmin_c": 20.5,
+        "rain_mm_per_week": 0.0,
+        "et0_mm_day": 5.45,
+        "humidity_pct": 64.0
+      },
+      "6": {
+        "tavg_c": 29.0,
+        "tmax_c": 35.5,
+        "tmin_c": 23.0,
+        "rain_mm_per_week": 0.0,
+        "et0_mm_day": 6.08,
+        "humidity_pct": 64.0
+      },
+      "7": {
+        "tavg_c": 30.0,
+        "tmax_c": 36.5,
+        "tmin_c": 24.0,
+        "rain_mm_per_week": 0.0,
+        "et0_mm_day": 6.33,
+        "humidity_pct": 64.0
+      },
+      "8": {
+        "tavg_c": 29.5,
+        "tmax_c": 36.0,
+        "tmin_c": 23.5,
+        "rain_mm_per_week": 0.0,
+        "et0_mm_day": 6.2,
+        "humidity_pct": 64.0
+      },
+      "9": {
+        "tavg_c": 27.0,
+        "tmax_c": 33.5,
+        "tmin_c": 21.0,
+        "rain_mm_per_week": 0.0,
+        "et0_mm_day": 5.58,
+        "humidity_pct": 64.0
+      },
+      "10": {
+        "tavg_c": 23.5,
+        "tmax_c": 30.0,
+        "tmin_c": 17.5,
+        "rain_mm_per_week": 0.0,
+        "et0_mm_day": 4.7,
+        "humidity_pct": 64.0
+      },
+      "11": {
+        "tavg_c": 19.0,
+        "tmax_c": 25.5,
+        "tmin_c": 13.0,
+        "rain_mm_per_week": 3.2,
+        "et0_mm_day": 3.58,
+        "humidity_pct": 64.0
+      },
+      "12": {
+        "tavg_c": 15.5,
+        "tmax_c": 22.0,
+        "tmin_c": 9.5,
+        "rain_mm_per_week": 3.2,
+        "et0_mm_day": 2.7,
+        "humidity_pct": 64.0
+      }
+    }
+  },
+  "fayoum": {
+    "lat": 29.31,
+    "lon": 30.84,
+    "soil": "Sandy Loam",
+    "years_of_data": 10,
+    "et0_method": "Hargreaves (temperature-only), approximate",
+    "monthly": {
+      "1": {
+        "tavg_c": 16.0,
+        "tmax_c": 22.5,
+        "tmin_c": 10.0,
+        "rain_mm_per_week": 1.1,
+        "et0_mm_day": 3.05,
+        "humidity_pct": 52.0
+      },
+      "2": {
+        "tavg_c": 17.5,
+        "tmax_c": 24.0,
+        "tmin_c": 11.5,
+        "rain_mm_per_week": 1.1,
+        "et0_mm_day": 3.42,
+        "humidity_pct": 52.0
+      },
+      "3": {
+        "tavg_c": 20.5,
+        "tmax_c": 27.0,
+        "tmin_c": 14.5,
+        "rain_mm_per_week": 1.1,
+        "et0_mm_day": 4.17,
+        "humidity_pct": 52.0
+      },
+      "4": {
+        "tavg_c": 24.5,
+        "tmax_c": 31.0,
+        "tmin_c": 18.5,
+        "rain_mm_per_week": 0.0,
+        "et0_mm_day": 5.17,
+        "humidity_pct": 52.0
+      },
+      "5": {
+        "tavg_c": 28.0,
+        "tmax_c": 34.5,
+        "tmin_c": 22.0,
+        "rain_mm_per_week": 0.0,
+        "et0_mm_day": 6.05,
+        "humidity_pct": 52.0
+      },
+      "6": {
+        "tavg_c": 30.5,
+        "tmax_c": 37.0,
+        "tmin_c": 24.5,
+        "rain_mm_per_week": 0.0,
+        "et0_mm_day": 6.67,
+        "humidity_pct": 52.0
+      },
+      "7": {
+        "tavg_c": 31.5,
+        "tmax_c": 38.0,
+        "tmin_c": 25.5,
+        "rain_mm_per_week": 0.0,
+        "et0_mm_day": 6.92,
+        "humidity_pct": 52.0
+      },
+      "8": {
+        "tavg_c": 31.0,
+        "tmax_c": 37.5,
+        "tmin_c": 25.0,
+        "rain_mm_per_week": 0.0,
+        "et0_mm_day": 6.8,
+        "humidity_pct": 52.0
+      },
+      "9": {
+        "tavg_c": 28.5,
+        "tmax_c": 35.0,
+        "tmin_c": 22.5,
+        "rain_mm_per_week": 0.0,
+        "et0_mm_day": 6.17,
+        "humidity_pct": 52.0
+      },
+      "10": {
+        "tavg_c": 25.0,
+        "tmax_c": 31.5,
+        "tmin_c": 19.0,
+        "rain_mm_per_week": 0.0,
+        "et0_mm_day": 5.3,
+        "humidity_pct": 52.0
+      },
+      "11": {
+        "tavg_c": 20.5,
+        "tmax_c": 27.0,
+        "tmin_c": 14.5,
+        "rain_mm_per_week": 1.1,
+        "et0_mm_day": 4.17,
+        "humidity_pct": 52.0
+      },
+      "12": {
+        "tavg_c": 17.0,
+        "tmax_c": 23.5,
+        "tmin_c": 11.0,
+        "rain_mm_per_week": 1.1,
+        "et0_mm_day": 3.3,
+        "humidity_pct": 52.0
+      }
+    }
+  },
+  "upper_egypt": {
+    "lat": 25.69,
+    "lon": 32.64,
+    "soil": "Silty Clay",
+    "years_of_data": 10,
+    "et0_method": "Hargreaves (temperature-only), approximate",
+    "monthly": {
+      "1": {
+        "tavg_c": 18.5,
+        "tmax_c": 25.0,
+        "tmin_c": 12.5,
+        "rain_mm_per_week": 0.3,
+        "et0_mm_day": 3.85,
+        "humidity_pct": 40.0
+      },
+      "2": {
+        "tavg_c": 20.0,
+        "tmax_c": 26.5,
+        "tmin_c": 14.0,
+        "rain_mm_per_week": 0.3,
+        "et0_mm_day": 4.22,
+        "humidity_pct": 40.0
+      },
+      "3": {
+        "tavg_c": 23.0,
+        "tmax_c": 29.5,
+        "tmin_c": 17.0,
+        "rain_mm_per_week": 0.3,
+        "et0_mm_day": 4.97,
+        "humidity_pct": 40.0
+      },
+      "4": {
+        "tavg_c": 27.0,
+        "tmax_c": 33.5,
+        "tmin_c": 21.0,
+        "rain_mm_per_week": 0.0,
+        "et0_mm_day": 5.97,
+        "humidity_pct": 40.0
+      },
+      "5": {
+        "tavg_c": 30.5,
+        "tmax_c": 37.0,
+        "tmin_c": 24.5,
+        "rain_mm_per_week": 0.0,
+        "et0_mm_day": 6.85,
+        "humidity_pct": 40.0
+      },
+      "6": {
+        "tavg_c": 33.0,
+        "tmax_c": 39.5,
+        "tmin_c": 27.0,
+        "rain_mm_per_week": 0.0,
+        "et0_mm_day": 7.47,
+        "humidity_pct": 40.0
+      },
+      "7": {
+        "tavg_c": 34.0,
+        "tmax_c": 40.5,
+        "tmin_c": 28.0,
+        "rain_mm_per_week": 0.0,
+        "et0_mm_day": 7.72,
+        "humidity_pct": 40.0
+      },
+      "8": {
+        "tavg_c": 33.5,
+        "tmax_c": 40.0,
+        "tmin_c": 27.5,
+        "rain_mm_per_week": 0.0,
+        "et0_mm_day": 7.6,
+        "humidity_pct": 40.0
+      },
+      "9": {
+        "tavg_c": 31.0,
+        "tmax_c": 37.5,
+        "tmin_c": 25.0,
+        "rain_mm_per_week": 0.0,
+        "et0_mm_day": 6.97,
+        "humidity_pct": 40.0
+      },
+      "10": {
+        "tavg_c": 27.5,
+        "tmax_c": 34.0,
+        "tmin_c": 21.5,
+        "rain_mm_per_week": 0.0,
+        "et0_mm_day": 6.1,
+        "humidity_pct": 40.0
+      },
+      "11": {
+        "tavg_c": 23.0,
+        "tmax_c": 29.5,
+        "tmin_c": 17.0,
+        "rain_mm_per_week": 0.3,
+        "et0_mm_day": 4.97,
+        "humidity_pct": 40.0
+      },
+      "12": {
+        "tavg_c": 19.5,
+        "tmax_c": 26.0,
+        "tmin_c": 13.5,
+        "rain_mm_per_week": 0.3,
+        "et0_mm_day": 4.1,
+        "humidity_pct": 40.0
+      }
+    }
+  },
+  "new_valley": {
+    "lat": 25.45,
+    "lon": 30.55,
+    "soil": "Sandy",
+    "years_of_data": 10,
+    "et0_method": "Hargreaves (temperature-only), approximate",
+    "monthly": {
+      "1": {
+        "tavg_c": 19.5,
+        "tmax_c": 26.0,
+        "tmin_c": 13.5,
+        "rain_mm_per_week": 0.1,
+        "et0_mm_day": 4.45,
+        "humidity_pct": 32.0
+      },
+      "2": {
+        "tavg_c": 21.0,
+        "tmax_c": 27.5,
+        "tmin_c": 15.0,
+        "rain_mm_per_week": 0.1,
+        "et0_mm_day": 4.83,
+        "humidity_pct": 32.0
+      },
+      "3": {
+        "tavg_c": 24.0,
+        "tmax_c": 30.5,
+        "tmin_c": 18.0,
+        "rain_mm_per_week": 0.1,
+        "et0_mm_day": 5.58,
+        "humidity_pct": 32.0
+      },
+      "4": {
+        "tavg_c": 28.0,
+        "tmax_c": 34.5,
+        "tmin_c": 22.0,
+        "rain_mm_per_week": 0.0,
+        "et0_mm_day": 6.58,
+        "humidity_pct": 32.0
+      },
+      "5": {
+        "tavg_c": 31.5,
+        "tmax_c": 38.0,
+        "tmin_c": 25.5,
+        "rain_mm_per_week": 0.0,
+        "et0_mm_day": 7.45,
+        "humidity_pct": 32.0
+      },
+      "6": {
+        "tavg_c": 34.0,
+        "tmax_c": 40.5,
+        "tmin_c": 28.0,
+        "rain_mm_per_week": 0.0,
+        "et0_mm_day": 8.07,
+        "humidity_pct": 32.0
+      },
+      "7": {
+        "tavg_c": 35.0,
+        "tmax_c": 41.5,
+        "tmin_c": 29.0,
+        "rain_mm_per_week": 0.0,
+        "et0_mm_day": 8.32,
+        "humidity_pct": 32.0
+      },
+      "8": {
+        "tavg_c": 34.5,
+        "tmax_c": 41.0,
+        "tmin_c": 28.5,
+        "rain_mm_per_week": 0.0,
+        "et0_mm_day": 8.2,
+        "humidity_pct": 32.0
+      },
+      "9": {
+        "tavg_c": 32.0,
+        "tmax_c": 38.5,
+        "tmin_c": 26.0,
+        "rain_mm_per_week": 0.0,
+        "et0_mm_day": 7.58,
+        "humidity_pct": 32.0
+      },
+      "10": {
+        "tavg_c": 28.5,
+        "tmax_c": 35.0,
+        "tmin_c": 22.5,
+        "rain_mm_per_week": 0.0,
+        "et0_mm_day": 6.7,
+        "humidity_pct": 32.0
+      },
+      "11": {
+        "tavg_c": 24.0,
+        "tmax_c": 30.5,
+        "tmin_c": 18.0,
+        "rain_mm_per_week": 0.1,
+        "et0_mm_day": 5.58,
+        "humidity_pct": 32.0
+      },
+      "12": {
+        "tavg_c": 20.5,
+        "tmax_c": 27.0,
+        "tmin_c": 14.5,
+        "rain_mm_per_week": 0.1,
+        "et0_mm_day": 4.7,
+        "humidity_pct": 32.0
+      }
+    }
+  }
+}

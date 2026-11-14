@@ -1,7 +1,7 @@
 import pytest
 
 from app.engine._reference import load_crops, load_json
-from app.engine.rotation import SEP, recommend_rotations
+from app.engine.rotation import SEP, recommend_rotations, score_baseline_rotation
 from app.engine.yield_estimation import estimate_yield
 from app.schemas.contracts import EnvironmentalFeatures
 
@@ -74,6 +74,26 @@ def test_weights_change_ranking():
         s = parse(o)
         return sum(DB[c]["water_req_mm"] for c in s) / len(s)
     assert avg_water(b[0]) <= avg_water(a[0])
+
+
+def test_baseline_score_uses_previous_and_current_crop():
+    legume_baseline = score_baseline_rotation(NILE_WHEAT.model_copy(
+        update={"previous_crop": "berseem_clover"}
+    ))
+    repeated_crop_baseline = score_baseline_rotation(NILE_WHEAT.model_copy(
+        update={"previous_crop": "wheat"}
+    ))
+    assert legume_baseline is not None
+    assert repeated_crop_baseline is not None
+    assert 0.0 <= legume_baseline <= 1.0
+    assert legume_baseline > repeated_crop_baseline
+
+
+def test_baseline_score_is_omitted_without_supported_crop_history():
+    assert score_baseline_rotation(NILE_WHEAT) is None
+    assert score_baseline_rotation(NILE_WHEAT.model_copy(
+        update={"previous_crop": "quinoa"}
+    )) is None
 
 
 def test_unknown_current_crop_does_not_crash():

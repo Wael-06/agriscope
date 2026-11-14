@@ -1,7 +1,7 @@
 let climateChartInstance = null;
 let ndviChartInstance = null;
 let forecastChartInstance = null;
-let lastRawRotations = [];
+let priorityUpdateTimer = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
   await checkBackendHealth();
@@ -13,6 +13,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   const regions = await fetchRegions();
+  const previousCropSelect = document.getElementById("previous_crop");
+  document.querySelectorAll("#crop option").forEach((option) => {
+    const previousOption = option.cloneNode(true);
+    previousOption.selected = false;
+    previousOption.defaultSelected = false;
+    previousCropSelect.append(previousOption);
+  });
+  previousCropSelect.value = "";
 
   const applyRegionSelection = (region) => {
     document.getElementById("lat").value = region.lat;
@@ -86,10 +94,9 @@ function setupPrioritySliders() {
   const sliderIds = ["weight-soil", "weight-water", "weight-climate"];
   sliderIds.forEach((id) => {
     document.getElementById(id).addEventListener("input", () => {
-      const weights = getNormalizedPriorityWeights();
-      const selectedCrop = document.getElementById("crop").value;
-      const reRanked = applyClientPriorityWeights(lastRawRotations, weights, selectedCrop);
-      renderRotationList(reRanked, selectedCrop);
+      getNormalizedPriorityWeights();
+      clearTimeout(priorityUpdateTimer);
+      priorityUpdateTimer = setTimeout(runFullAnalysis, 300);
     });
   });
 }
@@ -99,6 +106,7 @@ function collectFormPayload() {
     lat: parseFloat(document.getElementById("lat").value),
     lon: parseFloat(document.getElementById("lon").value),
     crop: document.getElementById("crop").value,
+    previous_crop: document.getElementById("previous_crop").value || null,
     field_size_ha: parseFloat(document.getElementById("field_size_ha").value),
     planting_date: document.getElementById("planting_date").value,
     soil_texture: document.getElementById("soil_texture").value,
@@ -121,7 +129,6 @@ async function runFullAnalysis() {
       fetchTrends(payload.lat, payload.lon)
     ]);
 
-    lastRawRotations = recResult.data.rotation_recommendations || [];
     renderRecommendationDashboard(recResult.data, payload, recResult.isLive);
     renderEarthIntelligenceCharts(trendsData);
   } catch (err) {
@@ -151,12 +158,8 @@ function renderRecommendationDashboard(data, payload, isLive) {
   document.getElementById("spec-kc").textContent = cropMeta.kc.toFixed(2);
   document.getElementById("spec-etc").textContent = `${etc} mm/day`;
 
-  const weightedRotations = applyClientPriorityWeights(
-    data.rotation_recommendations,
-    payload.rotation_priority_weights,
-    payload.crop
-  );
-  renderRotationList(weightedRotations, payload.crop);
+  renderRotationList(data.rotation_recommendations);
+  renderRotationBaseline(data.baseline_score, payload.previous_crop, payload.crop, isLive);
 
   document.getElementById("res-yield").textContent = Number(data.yield_estimate_kg_ha).toLocaleString();
 
@@ -169,19 +172,16 @@ function renderRecommendationDashboard(data, payload, isLive) {
     data.notes || "Baseline estimate from documented environmental variables and FAOSTAT history; not a trained model.";
 }
 
-function renderRotationList(recommendations, selectedCrop) {
+function renderRotationList(recommendations) {
   const listEl = document.getElementById("rotation-list");
   listEl.innerHTML = "";
 
-  const defaultSequences = [
-    `${formatCropName(selectedCrop)} → Cotton → Wheat`,
-    `Maize → Faba Bean → ${formatCropName(selectedCrop)}`,
-    `${formatCropName(selectedCrop)} → Sorghum → Wheat`
-  ];
-
-  (recommendations || []).slice(0, 3).forEach((item, index) => {
+  (recommendations || []).slice(0, 3).forEach((item) => {
     const li = document.createElement("li");
-    const seqTitle = item.sequence_label || `${defaultSequences[index]} (${formatCropName(item.crop)})`;
+    const seqTitle = item.sequence_label || item.crop
+      .split(" → ")
+      .map(formatCropName)
+      .join(" → ");
     li.innerHTML = `
       <span class="rotation-item-title">${seqTitle}</span>
       <span class="rotation-score">Score: ${Number(item.score).toFixed(2)}</span>
@@ -189,6 +189,22 @@ function renderRotationList(recommendations, selectedCrop) {
     `;
     listEl.appendChild(li);
   });
+}
+
+function renderRotationBaseline(score, previousCrop, currentCrop, isLive) {
+  const baselineEl = document.getElementById("rotation-baseline");
+  if (!previousCrop) {
+    baselineEl.classList.add("hidden");
+    baselineEl.textContent = "";
+    return;
+  }
+
+  baselineEl.textContent = Number.isFinite(score)
+    ? `Existing practice (${formatCropName(previousCrop)} → ${formatCropName(currentCrop)}): ${Number(score).toFixed(2)} / 1.00`
+    : isLive
+      ? "Existing-practice score unavailable: a selected crop is not in the rotation reference data."
+      : "Existing-practice score unavailable in offline demo mode.";
+  baselineEl.classList.remove("hidden");
 }
 
 function renderEarthIntelligenceCharts(trends) {

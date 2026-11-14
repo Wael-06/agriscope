@@ -25,6 +25,7 @@ class EnvironmentalFeatures(BaseModel):
     lat: float
     lon: float
     crop: str
+    previous_crop: Optional[str] = None
     field_size_ha: float
     planting_date: str          # "YYYY-MM-DD"
     avg_temp_c: float           # 30-day mean temperature (C)
@@ -55,6 +56,7 @@ class RecommendationResponse(BaseModel):
     irrigation_mm_per_week: float
     next_irrigation_date: str
     rotation_recommendations: List[RotationOption]
+    baseline_score: Optional[float] = None
     yield_estimate_kg_ha: float
     confidence: str
     notes: str

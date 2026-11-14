@@ -59,8 +59,9 @@ def get_power_summary(lat: float, lon: float) -> dict:
         }
         set_cached(cache_key, result)
         return result
-    except Exception:
-        # Graceful stage fallback (Egypt autumn baseline)
+    except Exception as e:
+        import logging
+        logging.warning(f"nasa_power fetch failed for {rlat},{rlon}: {e}")
         return {
             "avg_temp_c": 22.4,
             "max_temp_c": 28.5,
@@ -68,5 +69,5 @@ def get_power_summary(lat: float, lon: float) -> dict:
             "avg_solar_rad": 18.2,
             "soil_moisture_root": 0.44,
             "soil_moisture_top": 0.36,
-            "series": {"dates": [], "temp_c": [], "precip_mm": []}
+            "series": {"dates": [], "temp_c": [], "precip_mm": []},
         }

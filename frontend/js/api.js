@@ -108,43 +108,6 @@ async function fetchTrends(lat, lon) {
   }
 }
 
-function applyClientPriorityWeights(rotations, weights, selectedCrop) {
-  const profileScores = {
-    cotton: { soil: 0.86, water: 0.78, climate: 0.88, div: 0.92 },
-    faba_bean: { soil: 0.92, water: 0.82, climate: 0.76, div: 0.85 },
-    sorghum: { soil: 0.65, water: 0.86, climate: 0.94, div: 0.72 },
-    maize: { soil: 0.72, water: 0.68, climate: 0.82, div: 0.78 },
-    wheat: { soil: 0.70, water: 0.84, climate: 0.88, div: 0.70 }
-  };
-
-  const seqTemplates = [
-    `${formatCropName(selectedCrop)} → Cotton → Wheat`,
-    `Maize → Faba Bean → ${formatCropName(selectedCrop)}`,
-    `${formatCropName(selectedCrop)} → Sorghum → Wheat`
-  ];
-
-  return (rotations || [])
-    .map((item, idx) => {
-      const normalizedCrop = item.crop === "berseem_clover" ? "cotton" : item.crop;
-      const p = profileScores[normalizedCrop] || { soil: item.score || 0.75, water: 0.75, climate: 0.75, div: 0.75 };
-      const weightedScore =
-        weights.soil_health * p.soil +
-        weights.water_demand * p.water +
-        weights.climate_suitability * p.climate +
-        (weights.rotation_diversity || 0.1) * p.div;
-
-      return {
-        crop: normalizedCrop,
-        sequence_label: item.sequence_label || `${seqTemplates[idx % 3]} (${formatCropName(normalizedCrop)})`,
-        score: Number(weightedScore.toFixed(2)),
-        reason: normalizedCrop === "cotton" && item.crop === "berseem_clover"
-          ? "Deep-rooted fiber crop; breaks cereal pest cycles and improves soil tilth."
-          : item.reason
-      };
-    })
-    .sort((a, b) => b.score - a.score);
-}
-
 function buildFallbackRecommendation(payload) {
   const refYields = {
     wheat: 6200.0,
@@ -158,22 +121,18 @@ function buildFallbackRecommendation(payload) {
   const estYield = Math.round(base * (0.7 + 0.48 * 0.6));
 
   const baseRotations = [
-    { crop: "cotton", score: 0.84, reason: "Deep-rooted fiber crop; breaks cereal pest cycles and improves soil tilth." },
-    { crop: "faba_bean", score: 0.77, reason: "Moderate water demand suited to current root moisture." },
-    { crop: "sorghum", score: 0.69, reason: "High heat tolerance if peak temperatures rise." }
+    { crop: "cotton", sequence_label: `${formatCropName(payload.crop)} → Cotton → Wheat`, score: 0.84, reason: "Offline illustrative example; not scored from field data." },
+    { crop: "faba_bean", sequence_label: `Maize → Faba Bean → ${formatCropName(payload.crop)}`, score: 0.77, reason: "Offline illustrative example; not scored from field data." },
+    { crop: "sorghum", sequence_label: `${formatCropName(payload.crop)} → Sorghum → Wheat`, score: 0.69, reason: "Offline illustrative example; not scored from field data." }
   ];
 
   return {
     irrigation_mm_per_week: 32.0,
     next_irrigation_date: "2026-11-20",
-    rotation_recommendations: applyClientPriorityWeights(
-      baseRotations,
-      payload.rotation_priority_weights,
-      payload.crop
-    ),
+    rotation_recommendations: baseRotations,
     yield_estimate_kg_ha: estYield,
     confidence: "Medium",
-    notes: "Prototype estimate combining NASA POWER soil moisture, MODIS NDVI, and regional baseline; subject to local cultivar variance."
+    notes: "Offline demo only: values and rotation examples are fixed placeholders, not generated from NASA observations or field conditions."
   };
 }
 
@@ -206,6 +165,7 @@ function formatCropName(cropKey) {
     sugarcane: "Sugarcane",
     date_palm: "Date Palm",
     faba_bean: "Faba Bean",
+    berseem_clover: "Berseem Clover",
     sorghum: "Sorghum",
     rice: "Rice"
   };

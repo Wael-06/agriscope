@@ -67,6 +67,13 @@
           </select>
         </div>
 
+        <div class="form-group">
+          <label for="previous_crop">What did you grow here last season? (optional)</label>
+          <select id="previous_crop">
+            <option value="">Skip comparison</option>
+          </select>
+        </div>
+
         <div class="form-row">
           <div class="form-group">
             <label for="field_size_ha">Field Size (ha)</label>
@@ -205,6 +212,7 @@
 
             <div class="rotation-section">
               <h4>Top 3 Ranked Sequences & Next Crops</h4>
+              <p id="rotation-baseline" class="advisory-note hidden"></p>
               <ol id="rotation-list" class="rotation-list"></ol>
             </div>
           </div>

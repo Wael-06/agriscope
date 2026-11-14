@@ -148,6 +148,31 @@ def score_sequence(chain: list[str | None], seasons: list[str], f: Environmental
     }
 
 
+def score_baseline_rotation(features: EnvironmentalFeatures) -> float | None:
+    """Score the previous-crop -> current-crop practice when both crops are supported."""
+    db = _db()
+    previous = features.previous_crop
+    current = features.crop
+    if not previous or previous not in db or current not in db:
+        return None
+
+    current_season = _current_season(features, db[current])
+    previous_season = _opposite(current_season)
+    observed_season = season_of_month(date.fromisoformat(features.planting_date).month,
+                                      features.lat)
+    chain = [previous, current]
+    components = score_sequence(
+        chain,
+        [previous_season, current_season],
+        features,
+        observed_season,
+    )
+    stressed = features.ndvi_trend < NDVI_STRESS_TREND
+    weights = _normalised_weights(features, stressed)
+    score = sum(weights[key] * components[key] for key in CRITERIA)
+    return round(score, 2)
+
+
 # --------------------------------------------------------------- reasons (D)
 def _reason(chain: list[str | None], comps: dict, weights: dict, stressed: bool) -> str:
     db = _db()

@@ -34,7 +34,9 @@ def get_weather_forecast(lat: float, lon: float) -> dict:
         }
         set_cached(cache_key, result)
         return result
-    except Exception:
+    except Exception as e:
+        import logging
+        logging.warning(f"open_meteo fetch failed for {rlat},{rlon}: {e}")
         return {
             "forecast_et0_mm_day": 4.2,
             "forecast_precip_7d_mm": 0.0,

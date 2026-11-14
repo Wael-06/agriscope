@@ -4,11 +4,42 @@ from app.services.nasa_power import get_power_summary
 from app.services.modis import get_ndvi_summary
 from app.services.open_meteo import get_weather_forecast
 from app.engine.irrigation import compute_irrigation
-from app.engine.rotation import recommend_rotations
+from app.engine.rotation import recommend_rotations, score_baseline_rotation
 from app.engine.yield_estimation import estimate_yield
 from app.engine.climatology import fallback_forecast
 
 router = APIRouter()
+
+_FALLBACK_SOIL_MOISTURE = {
+    "sand": (0.32, 0.25),
+    "loam": (0.50, 0.42),
+    "clay": (0.65, 0.58),
+}
+_FALLBACK_IRRIGATION_ADJUSTMENT = {
+    "available": 0.08,
+    "limited": 0.0,
+    "none": -0.12,
+}
+
+
+def _fallback_soil_moisture(soil_texture: str | None,
+                            irrigation_availability: str | None) -> tuple[float, float]:
+    soil_key = (soil_texture or "clay").strip().lower().replace("-", "_").replace(" ", "_")
+    soil_key = {
+        "sandy": "sand",
+        "sandy_loam": "loam",
+        "clay_loam": "loam",
+        "alluvial_clay": "clay",
+        "silty_clay": "clay",
+    }.get(soil_key, soil_key)
+    root, top = _FALLBACK_SOIL_MOISTURE.get(soil_key, _FALLBACK_SOIL_MOISTURE["clay"])
+    adjustment = _FALLBACK_IRRIGATION_ADJUSTMENT.get(
+        (irrigation_availability or "limited").strip().lower(),
+        _FALLBACK_IRRIGATION_ADJUSTMENT["limited"],
+    )
+    return round(min(1.0, max(0.0, root + adjustment)), 3), round(
+        min(1.0, max(0.0, top + adjustment)), 3
+    )
 
 
 @router.post("/recommendation", response_model=RecommendationResponse)
@@ -34,22 +65,32 @@ def create_recommendation(req: RecommendationRequest):
             "forecast_max_temp_c": meteo["forecast_max_temp_c"],
             "forecast_et0_mm_day": meteo["forecast_et0_mm_day"],
         }
-    except Exception:
+    except Exception as e:
+        import logging
+        logging.warning(
+            "Recommendation data fetch failed for %s,%s; using fallback: %s",
+            req.lat, req.lon, e,
+        )
         clim = fallback_forecast(req.lat, req.lon, month)
         source_note = f" Weather is {clim['_source']}, not live data."
+        source_note += " Soil moisture is estimated from soil texture and irrigation access."
         env = {k: v for k, v in clim.items() if not k.startswith("_")}
+        soil_moisture_root, soil_moisture_top = _fallback_soil_moisture(
+            req.soil_texture, req.irrigation_availability
+        )
         env.update(
             ndvi_current=0.4,
             ndvi_trend=0.0,
             avg_solar_rad=15.0,
-            soil_moisture_root=0.5,
-            soil_moisture_top=0.5,
+            soil_moisture_root=soil_moisture_root,
+            soil_moisture_top=soil_moisture_top,
         )
 
     feature_kwargs = dict(
         lat=req.lat,
         lon=req.lon,
         crop=req.crop,
+        previous_crop=req.previous_crop,
         field_size_ha=req.field_size_ha,
         planting_date=req.planting_date,
         soil_texture=req.soil_texture or "clay",
@@ -64,12 +105,14 @@ def create_recommendation(req: RecommendationRequest):
 
     irrigation_mm, next_date = compute_irrigation(features)
     rotations = recommend_rotations(features)
+    baseline_score = score_baseline_rotation(features)
     yield_kg, confidence, y_note = estimate_yield(features)
 
     return RecommendationResponse(
         irrigation_mm_per_week=irrigation_mm,
         next_irrigation_date=next_date,
         rotation_recommendations=rotations,
+        baseline_score=baseline_score,
         yield_estimate_kg_ha=yield_kg,
         confidence=confidence,
         notes=(y_note + source_note).strip(),

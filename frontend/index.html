@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgriScope — Adapting Farms with NASA Data</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- 3D Globe.gl Landing Overlay -->
+  <div id="globe-overlay" class="globe-overlay">
+    <div id="globe-container"></div>
+    <div class="globe-hud">
+      <span class="hud-tag">NASA Space Apps Challenge 2026</span>
+      <h1>AgriScope</h1>
+      <p>Adapting Egyptian Farms with NASA POWER, MODIS NDVI & Open-Meteo Intelligence</p>
+      <div class="hud-actions">
+        <button id="enter-dashboard-btn" class="hud-btn">Explore Egypt Regions (Zoom to Map)</button>
+      </div>
+      <span class="hud-hint">Click any glowing region on the 3D globe or press the button above</span>
+    </div>
+  </div>
+
+  <header class="app-header">
+    <div class="brand">
+      <h1>AgriScope</h1>
+      <span class="subtitle">NASA Space Apps — Farm Decision Support (Egypt Demo)</span>
+    </div>
+    <div class="header-right">
+      <button id="reopen-globe-btn" class="globe-toggle-btn" type="button">3D Globe View</button>
+      <div id="api-status" class="status-badge status-mock">Checking Backend...</div>
+    </div>
+  </header>
+
+  <main class="app-container">
+    <aside class="side-panel">
+      <section class="panel-section">
+        <h2>1. Select Region or Click Map</h2>
+        <div id="region-presets" class="preset-buttons"></div>
+      </section>
+
+      <form id="farmer-form" class="panel-section">
+        <h2>2. Field & Crop Parameters</h2>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="lat">Latitude</label>
+            <input type="number" id="lat" step="0.0001" value="31.11" required />
+          </div>
+          <div class="form-group">
+            <label for="lon">Longitude</label>
+            <input type="number" id="lon" step="0.0001" value="30.94" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="crop">Selected Crop</label>
+          <select id="crop" required>
+            <option value="wheat">Wheat (قمح)</option>
+            <option value="maize">Maize (ذرة)</option>
+            <option value="cotton">Cotton (قطن)</option>
+            <option value="tomato">Tomato (طماطم)</option>
+            <option value="sugarcane">Sugarcane (قصب السكر)</option>
+            <option value="date_palm">Date Palm (نخيل التمر)</option>
+            <option value="rice">Rice (أرز)</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="field_size_ha">Field Size (ha)</label>
+            <input type="number" id="field_size_ha" step="0.1" min="0.1" value="2.5" required />
+          </div>
+          <div class="form-group">
+            <label for="planting_date">Planting Date</label>
+            <input type="date" id="planting_date" value="2026-11-15" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="soil_texture">Soil Texture</label>
+            <select id="soil_texture">
+              <option value="clay">Alluvial / Silty Clay (طينية)</option>
+              <option value="loam">Sandy / Clay Loam (طميية)</option>
+              <option value="sandy">Sandy (رملية)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="irrigation_availability">Irrigation Access</label>
+            <select id="irrigation_availability">
+              <option value="available">Available (متوفر)</option>
+              <option value="limited" selected>Limited (محدود)</option>
+              <option value="none">None / Rainfed (بعلي)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="planning_horizon_seasons">Planning Horizon (Seasons)</label>
+          <input type="number" id="planning_horizon_seasons" min="1" max="6" value="3" required />
+        </div>
+
+        <button type="submit" id="submit-btn" class="primary-btn">
+          Analyze Field & Get Recommendations
+        </button>
+      </form>
+    </aside>
+
+    <section class="main-content">
+      <div class="map-card">
+        <div id="map"></div>
+      </div>
+
+      <div id="loading-state" class="state-banner hidden">
+        Fetching NASA POWER, MODIS NDVI & Open-Meteo data...
+      </div>
+      <div id="error-state" class="state-banner error-banner hidden"></div>
+
+      <div id="dashboard-content">
+        <div class="cards-grid">
+          <!-- Card 1: Irrigation Advisor -->
+          <div class="card">
+            <div class="card-header">
+              <h3>Irrigation Advisor</h3>
+              <span id="irrig-mode-badge" class="illustrative-tag">
+                Illustrative example only; not a live recommendation
+              </span>
+            </div>
+
+            <div class="highlight-metrics">
+              <div class="metric-box">
+                <span class="metric-label">Weekly Requirement</span>
+                <span id="res-irrig-mm" class="metric-value">32.0 mm/wk</span>
+              </div>
+              <div class="metric-box">
+                <span class="metric-label">Next Irrigation Date</span>
+                <span id="res-irrig-date" class="metric-value">2026-11-20</span>
+              </div>
+            </div>
+
+            <table class="spec-table">
+              <tbody>
+                <tr>
+                  <td>Selected crop</td>
+                  <td id="spec-crop">Wheat</td>
+                </tr>
+                <tr>
+                  <td>Growth stage</td>
+                  <td id="spec-stage">Mid-season</td>
+                </tr>
+                <tr>
+                  <td>Forecast ET0</td>
+                  <td id="spec-et0">4.2 mm/day</td>
+                </tr>
+                <tr>
+                  <td>Crop coefficient (Kc)</td>
+                  <td id="spec-kc">1.15</td>
+                </tr>
+                <tr>
+                  <td>Estimated crop water use (ETc)</td>
+                  <td id="spec-etc">4.83 mm/day</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <p class="advisory-note" id="spec-action">
+              <strong>Suggested action:</strong> Check field soil moisture and effective rainfall before scheduling irrigation; adjust for your irrigation system's efficiency.
+            </p>
+          </div>
+
+          <!-- Card 2: Crop Rotation Comparison -->
+          <div class="card">
+            <div class="card-header">
+              <h3>Crop Rotation Comparison</h3>
+              <span class="illustrative-tag">
+                Rankings depend on chosen weights (illustrative of interaction)
+              </span>
+            </div>
+
+            <div class="sliders-container">
+              <div class="slider-group">
+                <label>
+                  <span>Soil Health</span>
+                  <span id="val-soil">0.35</span>
+                </label>
+                <input type="range" id="weight-soil" min="0" max="100" value="35" />
+              </div>
+              <div class="slider-group">
+                <label>
+                  <span>Water Saving</span>
+                  <span id="val-water">0.30</span>
+                </label>
+                <input type="range" id="weight-water" min="0" max="100" value="30" />
+              </div>
+              <div class="slider-group">
+                <label>
+                  <span>Climate Resilience</span>
+                  <span id="val-climate">0.25</span>
+                </label>
+                <input type="range" id="weight-climate" min="0" max="100" value="25" />
+              </div>
+            </div>
+
+            <div class="rotation-section">
+              <h4>Top 3 Ranked Sequences & Next Crops</h4>
+              <ol id="rotation-list" class="rotation-list"></ol>
+            </div>
+          </div>
+
+          <!-- Card 3: Baseline Yield Estimate -->
+          <div class="card">
+            <div class="card-header">
+              <h3>Baseline Yield Estimate</h3>
+              <span id="res-confidence" class="confidence-badge confidence-medium">
+                Confidence: Medium
+              </span>
+            </div>
+
+            <div class="yield-main">
+              <span id="res-yield" class="yield-number">4,200</span>
+              <span class="yield-unit">kg / ha</span>
+            </div>
+
+            <div class="limitations-box">
+              <strong>Scientific Uncertainty & Limitations Note:</strong>
+              <p id="res-notes">
+                Prototype estimate combining NASA POWER soil moisture, MODIS NDVI, and regional baseline; subject to local cultivar variance.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <section class="charts-section">
+          <div class="section-title-row">
+            <h2>Earth Intelligence View (NASA POWER, MODIS NDVI & 7-Day Forecast)</h2>
+          </div>
+          <div class="charts-grid">
+            <div class="chart-card">
+              <h4>30-Day Temperature & Precipitation (NASA POWER)</h4>
+              <canvas id="climateChart"></canvas>
+            </div>
+            <div class="chart-card">
+              <h4>60-Day Vegetation Health (MODIS NDVI)</h4>
+              <canvas id="ndviChart"></canvas>
+            </div>
+            <div class="chart-card">
+              <h4>7-Day Weather Forecast (Open-Meteo)</h4>
+              <canvas id="forecastChart"></canvas>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/globe.gl@2.32.1/dist/globe.gl.min.js"></script>
+
+  <script src="js/api.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/globe.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

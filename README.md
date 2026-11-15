@@ -1,16 +1,28 @@
+<div align="center">
+
 # AgriScope
 
 ### From Earth observations to climate-resilient agricultural decisions.
 
-## Live Demo
+**NASA Space Apps Challenge 2026 — Field Shift**
 
-**[Explore AgriScope](https://63.183.126.138.nip.io/)**
+<a href="https://63.183.126.138.nip.io/">
+  <img src="https://img.shields.io/badge/ OPEN_LIVE_DEMO-Launch_AgriScope-16a34a?style=for-the-badge&labelColor=14532d" alt="Open AgriScope Live Demo" />
+</a>
 
-Try the deployed application and explore its climate-risk maps, irrigation recommendations, and crop-rotation planning.
+<br/>
 
-## Project Demonstration
+<a href="https://drive.google.com/file/d/1W-VO1KBmknLpdGlZRHO2HNRJDL1twWSp/preview">
+  <img src="docs/demo-thumbnail.png" alt="Watch the AgriScope video demo" width="100%" />
+</a>
 
-[![Watch AgriScope Demo](docs/demo-thumbnail.png)](https://drive.google.com/file/d/1r-ZWgFY3-dbDP6Z7n2IBrJ7dHGS5z9Fu/view)
+**Explore climate vulnerability. Plan irrigation. Compare crop rotations. Get AI-powered field advice.**
+
+[Live Application](https://63.183.126.138.nip.io/) · [Watch Project Demo](https://drive.google.com/file/d/1W-VO1KBmknLpdGlZRHO2HNRJDL1twWSp/preview) · [Project Documentation](#agriscope)
+
+</div>
+
+---
 
 **AgriScope** is a climate-aware agricultural decision-support platform that helps farmers and agronomists understand environmental stress, estimate irrigation requirements, and compare crop-rotation strategies.
 
@@ -18,7 +30,6 @@ By combining NASA Earth data, weather forecasts, crop characteristics, soil info
 
 Built for the **NASA Space Apps Challenge 2026 — Field Shift: Adapting Farms with NASA Data**.
 
-<!-- Add docs/images/dashboard-overview.png before publishing this image reference. -->
 ![AgriScope dashboard overview](docs/dashboard-overview.png)
 
 ---
@@ -131,6 +142,22 @@ The estimation approach depends on geographic coverage:
 
 Every estimate includes a confidence level and explanatory notes. These outputs are intended for comparison and planning, not as guaranteed predictions of actual harvests.
 
+### 5. Get personalized guidance with the AI Field Advisor
+
+The **AI Field Advisor** uses Google Gemini to turn AgriScope's calculated field results into practical advice in English or Arabic. It can also answer an optional question about the selected field.
+
+Gemini receives structured results already calculated by AgriScope, including:
+
+- Yield estimate and confidence.
+- Seven-day water gap, forecast rainfall, and soil-moisture context.
+- Current NDVI and its 60-day trend.
+- Ranked crop-rotation options.
+- Field details such as crop, location, soil, planting date, and irrigation availability.
+
+Advice is organized into six areas: **Summary, This season, Water, Soil and nutrients, Next seasons,** and **Risks to watch**. Gemini is instructed to preserve AgriScope's calculated values rather than inventing figures. If Gemini is unavailable or a request fails, the advisor falls back to rule-based guidance using the same field data.
+
+The feature is implemented in `backend/app/engine/advisor.py` and exposed through `POST /advisor` using the Google Gen AI Python SDK (`google-genai`). The Gemini model can be configured through environment variables.
+
 ---
 
 ## Data sources
@@ -181,6 +208,12 @@ The system is designed to make the reasoning behind its recommendations visible 
 - Leaflet for interactive maps
 - Chart.js for data visualization
 - Globe.gl for the 3D globe interface
+
+**AI**
+- Google Gemini API
+- Google Gen AI Python SDK (`google-genai`)
+- Structured field-context generation
+- Rule-based fallback advice
 
 **Data and models**
 - NASA POWER API
@@ -313,13 +346,25 @@ source .venv/bin/activate
 
 pip install -r requirements.txt
 
-# Optional: enable Gemini-generated field advice
-export GEMINI_API_KEY=your_key
-
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+# Create the backend environment file
+touch .env
 ```
 
-On Windows PowerShell, set the key with `$env:GEMINI_API_KEY="your_key"` before starting the backend. For local development, the backend also loads a `.env` file from the `backend/` directory (or the advisor module directory). The AI Field Advisor button sends the selected field inputs to `POST /advisor`; without a Gemini key, it clearly reports that it is showing built-in guidance instead.
+Add your Gemini configuration to `backend/.env`:
+
+```ini
+GEMINI_API_KEY=your_gemini_api_key
+# Optional: override the default model
+GEMINI_MODEL=gemini-flash-lite-latest
+```
+
+Make sure `backend/.env` is listed in `.gitignore`. **Never commit your API key.** Without a Gemini key, the advisor uses its built-in rule-based fallback.
+
+Start the backend:
+
+```bash
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
 
 The API documentation is available at:
 

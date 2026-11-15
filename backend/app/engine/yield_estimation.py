@@ -7,7 +7,10 @@ import pandas as pd
 import numpy as np
 import joblib
 
+from app.engine._model_compat import ensure_legacy_sklearn_pickle_compat
 from app.schemas.contracts import EnvironmentalFeatures
+
+ensure_legacy_sklearn_pickle_compat()
 
 
 class CropYieldPredictor:

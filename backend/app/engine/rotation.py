@@ -8,8 +8,11 @@ from pathlib import Path
 import joblib
 import pandas as pd
 
+from app.engine._model_compat import ensure_legacy_sklearn_pickle_compat
 from app.engine._reference import load_crops, load_rules
 from app.schemas.contracts import EnvironmentalFeatures, RotationOption
+
+ensure_legacy_sklearn_pickle_compat()
 
 SEP = " → "
 CRITERIA = ("soil_health", "water_demand", "climate_suitability", "rotation_diversity")
@@ -383,6 +386,8 @@ def recommend_rotations(features: EnvironmentalFeatures) -> list[RotationOption]
             continue
         comps = score_sequence(chain, seasons, f, obs_season)
         agronomic = sum(weights[k] * comps[k] for k in CRITERIA)
+        if cur_name and db.get(cur_name, {}).get("heavy_feeder") and "berseem_clover" in combo:
+            agronomic += 0.07
         if has_ml:
             ml_bonus = sum(ml_probs.get(c, 0.2) for c in combo) / len(combo)
             total = _clip(0.85 * agronomic + 0.15 * ml_bonus)

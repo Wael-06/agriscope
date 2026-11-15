@@ -8,6 +8,7 @@ import numpy as np
 import joblib
 
 from app.engine import country_models
+from app.engine._reference import load_crops
 from app.engine._model_compat import ensure_legacy_sklearn_pickle_compat
 from app.schemas.contracts import EnvironmentalFeatures
 
@@ -158,15 +159,14 @@ def _nearest_location(lat: float, lon: float) -> tuple[str, float]:
 def estimate_yield(features: EnvironmentalFeatures) -> tuple[float, str, str]:
     """Frozen contract wrapper -> (yield_kg_ha, confidence, note).
 
-    Egypt: the trained Random Forest. USA / China: a national-yield benchmark (trend of the last years)
-    from engine/models/yield_country.json. Elsewhere: an explicit "no model" answer, never a guess.
+    Egypt: the trained Random Forest. USA / China: a national-yield benchmark.
+    Elsewhere: a low-confidence climate-and-soil heuristic anchored to available country benchmarks.
     """
     country, dist = country_models.country_of(features.lat, features.lon)
     if country in ("USA", "CHINA"):
         return _country_yield(features, country, dist)
     if country is None:
-        return 0.0, "Low", (f"No yield model covers this location (nearest reference site {dist:.0f} km away; "
-                            "models exist for Egypt, USA and China).")
+        return _fallback_yield(features)
     crop_key = features.crop.strip().lower().replace(" ", "_")
     raw_item = _CROP_TO_ITEM.get(crop_key, features.crop)
     item = _match_category("Item", [raw_item, crop_key], fallback_first=False)
@@ -213,6 +213,64 @@ def estimate_yield(features: EnvironmentalFeatures) -> tuple[float, str, str]:
         f"{loc_name}, {km:.0f} km away)."
     )
     return yield_kg_ha, confidence, note
+
+
+def _fallback_yield(features: EnvironmentalFeatures) -> tuple[float, str, str]:
+    crop_key = features.crop.strip().lower().replace(" ", "_")
+    benchmark = country_models.fallback_yield_benchmark(
+        crop_key, date.fromisoformat(features.planting_date).year
+    )
+    crop = load_crops().get(crop_key)
+    if benchmark is None or crop is None:
+        return 0.0, "Low", (
+            f"No reference yield baseline is available for {features.crop} outside Egypt, "
+            "the USA, and China; no estimate was generated."
+        )
+
+    temperature = features.avg_temp_c
+    optimal_min, optimal_max = crop["temp_opt_c"]
+    if temperature < optimal_min:
+        temp_stress = max(0.0, optimal_min - temperature)
+    elif temperature > optimal_max:
+        temp_stress = max(0.0, temperature - optimal_max)
+    else:
+        temp_stress = 0.0
+    heat_stress = max(0.0, features.max_temp_c - crop["temp_max_c"])
+    temperature_factor = max(0.2, 1.0 - 0.025 * temp_stress - 0.04 * heat_stress)
+
+    monthly_water_need = crop["water_req_mm"] * 30.0 / crop["season_days"]
+    rainfall_coverage = min(1.0, max(0.0, features.total_precip_mm / monthly_water_need))
+    soil_moisture = min(1.0, max(0.0, features.soil_moisture_root))
+    water_supply = 0.6 * soil_moisture + 0.4 * rainfall_coverage
+    irrigation_bonus = {
+        "available": 0.25,
+        "limited": 0.12,
+        "none": 0.0,
+    }.get(features.irrigation_availability, 0.0)
+    water_factor = min(1.0, max(0.2, water_supply + irrigation_bonus))
+
+    soil_texture = features.soil_texture.strip().lower().replace(" ", "_")
+    soil_factor = {
+        "clay": 1.0,
+        "alluvial_clay": 1.0,
+        "silty_clay": 1.0,
+        "loam": 0.95,
+        "sandy_loam": 0.95,
+        "sandy": 0.85,
+        "sand": 0.85,
+    }.get(soil_texture, 0.9)
+    estimate = round(
+        benchmark["kg_ha"] * temperature_factor * water_factor * soil_factor,
+        1,
+    )
+    source_countries = " and ".join(benchmark["countries"])
+    note = (
+        f"Low-confidence heuristic estimate ({estimate:.0f} kg/ha), anchored to "
+        f"{source_countries} national yield benchmark(s) and adjusted for temperature, "
+        "rainfall, soil moisture, irrigation access, and soil texture. This is not a "
+        "locally validated model; verify with local agricultural guidance."
+    )
+    return estimate, "Low", note
 
 
 def _country_yield(features: EnvironmentalFeatures, country: str, dist_km: float) -> tuple[float, str, str]:

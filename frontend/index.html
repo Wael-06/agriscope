@@ -14,18 +14,18 @@
     <div class="globe-hud">
       <span class="hud-tag">NASA Space Apps Challenge 2026</span>
       <h1>AgriScope</h1>
-      <p>Adapting Egyptian Farms with NASA POWER, MODIS NDVI & Open-Meteo Intelligence</p>
+      <p>Supporting farms with NASA POWER, MODIS NDVI & Open-Meteo Intelligence</p>
       <div class="hud-actions">
-        <button id="enter-dashboard-btn" class="hud-btn">Explore Egypt Regions (Zoom to Map)</button>
+        <button id="enter-dashboard-btn" class="hud-btn">Explore Agricultural Regions</button>
       </div>
-      <span class="hud-hint">Click any glowing region on the 3D globe or press the button above</span>
+      <span class="hud-hint">Explore Egypt, USA, and China on the globe or use the region list</span>
     </div>
   </div>
 
   <header class="app-header">
     <div class="brand">
       <h1>AgriScope</h1>
-      <span class="subtitle">NASA Space Apps — Farm Decision Support (Egypt Demo)</span>
+      <span class="subtitle">NASA Space Apps — Farm Decision Support (Egypt, USA & China)</span>
     </div>
     <div class="header-right">
       <button id="reopen-globe-btn" class="globe-toggle-btn" type="button">3D Globe View</button>
@@ -36,7 +36,7 @@
   <main class="app-container">
     <aside class="side-panel">
       <section class="panel-section">
-        <h2>1. Select Region or Click Map</h2>
+        <h2>1. Select Country & Region or Click Map</h2>
         <div id="region-presets" class="preset-buttons"></div>
       </section>
 
@@ -65,6 +65,7 @@
             <option value="date_palm">Date Palm (نخيل التمر)</option>
             <option value="rice">Rice (أرز)</option>
           </select>
+          <small id="crop-model-coverage" class="sensor-caption hidden"></small>
         </div>
 
         <div class="form-group">

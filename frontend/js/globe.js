@@ -49,7 +49,7 @@ function initLandingGlobe(regions, onRegionSelectedFromGlobe) {
       zoomGlobeAndTransition(point, onRegionSelectedFromGlobe);
     });
 
-  globeInstance.pointOfView({ lat: 28.5, lng: 30.8, altitude: 1.85 }, 0);
+  globeInstance.pointOfView({ lat: 25, lng: 0, altitude: 2.4 }, 0);
 
   const controls = globeInstance.controls();
   if (controls) {
@@ -64,7 +64,7 @@ function initLandingGlobe(regions, onRegionSelectedFromGlobe) {
 
   document.getElementById("reopen-globe-btn").addEventListener("click", () => {
     overlay.classList.remove("fade-out");
-    globeInstance.pointOfView({ lat: 28.5, lng: 30.8, altitude: 1.75 }, 900);
+    globeInstance.pointOfView({ lat: 25, lng: 0, altitude: 2.4 }, 900);
     if (controls) controls.autoRotate = true;
   });
 

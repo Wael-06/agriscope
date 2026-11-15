@@ -3,7 +3,7 @@ let activeMarker = null;
 let loadedRegions = [];
 
 function initMap(onLocationSelected) {
-  mapInstance = L.map("map").setView([28.8, 30.8], 6);
+  mapInstance = L.map("map").setView([25, 0], 2);
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 18,
@@ -45,30 +45,50 @@ function renderRegionPresets(regions, onRegionPicked) {
   const container = document.getElementById("region-presets");
   container.innerHTML = "";
 
-  regions.forEach((reg, idx) => {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.dataset.regionId = reg.id;
-    btn.className = "preset-btn" + (idx === 0 ? " active" : "");
-    btn.textContent = reg.name;
+  const groupedRegions = regions.reduce((groups, region) => {
+    const country = region.country || "EGYPT";
+    (groups[country] ||= []).push(region);
+    return groups;
+  }, {});
+  let first = true;
+  Object.entries(groupedRegions).forEach(([country, countryRegions]) => {
+    const group = document.createElement("div");
+    group.className = "region-group";
+    const heading = document.createElement("h3");
+    heading.textContent = { EGYPT: "Egypt", USA: "United States", CHINA: "China" }[country] || country;
+    group.appendChild(heading);
+    const buttons = document.createElement("div");
+    buttons.className = "region-group-buttons";
 
-    btn.addEventListener("click", () => {
-      clearActivePresetButtons();
-      btn.classList.add("active");
-      setMapMarker(reg.lat, reg.lon, `<strong>${reg.name}</strong><br/>Soil: ${reg.soil}`);
-      onRegionPicked(reg);
+    countryRegions.forEach((reg) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.dataset.regionId = reg.id;
+      btn.className = "preset-btn" + (first ? " active" : "");
+      btn.textContent = reg.name;
+      first = false;
+
+      btn.addEventListener("click", () => {
+        clearActivePresetButtons();
+        btn.classList.add("active");
+        const label = reg.country ? `${heading.textContent} · ${reg.name}` : reg.name;
+        const soil = reg.soil ? `<br/>Soil: ${reg.soil}` : "";
+        setMapMarker(reg.lat, reg.lon, `<strong>${label}</strong>${soil}`);
+        onRegionPicked(reg);
+      });
+
+      buttons.appendChild(btn);
+      const circle = L.circleMarker([reg.lat, reg.lon], {
+        radius: 7,
+        color: country === "USA" ? "#1d4ed8" : country === "CHINA" ? "#dc2626" : "#1b5e20",
+        fillColor: country === "USA" ? "#60a5fa" : country === "CHINA" ? "#f87171" : "#22c55e",
+        fillOpacity: 0.75
+      }).addTo(mapInstance);
+
+      circle.bindTooltip(reg.name);
+      circle.on("click", () => btn.click());
     });
-
-    container.appendChild(btn);
-
-    const circle = L.circleMarker([reg.lat, reg.lon], {
-      radius: 7,
-      color: "#1b5e20",
-      fillColor: "#22c55e",
-      fillOpacity: 0.75
-    }).addTo(mapInstance);
-
-    circle.bindTooltip(reg.name);
-    circle.on("click", () => btn.click());
+    group.appendChild(buttons);
+    container.appendChild(group);
   });
 }

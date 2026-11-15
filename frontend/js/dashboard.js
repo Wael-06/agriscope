@@ -7,14 +7,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   await checkBackendHealth();
 
   initMap((coords) => {
+    updateCropOptions(null, allCropOptions);
     document.getElementById("lat").value = coords.lat;
     document.getElementById("lon").value = coords.lon;
     runFullAnalysis();
   });
 
   const regions = await fetchRegions();
+  const cropSelect = document.getElementById("crop");
+  const allCropOptions = Array.from(cropSelect.options, (option) => option.cloneNode(true));
   const previousCropSelect = document.getElementById("previous_crop");
-  document.querySelectorAll("#crop option").forEach((option) => {
+  allCropOptions.forEach((option) => {
     const previousOption = option.cloneNode(true);
     previousOption.selected = false;
     previousOption.defaultSelected = false;
@@ -25,9 +28,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const applyRegionSelection = (region) => {
     document.getElementById("lat").value = region.lat;
     document.getElementById("lon").value = region.lon;
-    if (region.default_crop) {
-      document.getElementById("crop").value = region.default_crop;
-    }
+    updateCropOptions(region, allCropOptions);
     const soilMap = {
       "Alluvial Clay": "clay",
       "Silty Clay": "clay",
@@ -37,7 +38,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (region.soil && soilMap[region.soil]) {
       document.getElementById("soil_texture").value = soilMap[region.soil];
     }
-    setMapMarker(region.lat, region.lon, `<strong>${region.name}</strong><br/>Soil: ${region.soil}`);
+    const regionLabel = region.country ? `${region.country} · ${region.name}` : region.name;
+    const soilNote = region.soil ? `<br/>Soil: ${region.soil}` : "";
+    setMapMarker(region.lat, region.lon, `<strong>${regionLabel}</strong>${soilNote}`);
     document.querySelectorAll(".preset-btn").forEach((b) => {
       b.classList.toggle("active", b.dataset.regionId === region.id);
     });
@@ -74,6 +77,30 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupPrioritySliders();
   runFullAnalysis();
 });
+
+function updateCropOptions(region = null, allCropOptions = null) {
+  const cropSelect = document.getElementById("crop");
+  const coverageNote = document.getElementById("crop-model-coverage");
+  if (!cropSelect || !coverageNote) return;
+
+  if (!Array.isArray(region?.supported_crops) || !allCropOptions) {
+    if (allCropOptions) cropSelect.replaceChildren(...allCropOptions);
+    coverageNote.textContent = "";
+    coverageNote.classList.add("hidden");
+    return;
+  }
+
+  const supported = new Set(region.supported_crops);
+  const options = allCropOptions.filter((option) => supported.has(option.value));
+  cropSelect.replaceChildren(...options);
+  cropSelect.value = supported.has(region.default_crop)
+    ? region.default_crop
+    : options[0]?.value || "";
+
+  const suitabilityCrops = region.suitability_crops || [];
+  coverageNote.textContent = `Yield benchmarks: ${options.map((option) => option.textContent.trim()).join(", ")}. Validated crop-suitability prior: ${suitabilityCrops.length ? suitabilityCrops.join(", ") : "none"}.`;
+  coverageNote.classList.remove("hidden");
+}
 
 function updateSensorVisibility() {
   const enabled = document.getElementById("use-live-sensor").checked;

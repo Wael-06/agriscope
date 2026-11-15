@@ -119,3 +119,69 @@ def test_unknown_crop_returns_zero_low_confidence():
     assert est == 0.0
     assert conf == "Low"
     assert "not in the trained yield model" in note
+
+
+@pytest.mark.parametrize(
+    ("lat", "lon", "crop", "country"),
+    [
+        (42.03, -93.62, "maize", "USA"),
+        (34.75, 113.62, "wheat", "CHINA"),
+    ],
+)
+def test_country_yield_benchmarks(lat, lon, crop, country):
+    estimate, confidence, note = estimate_yield(
+        make(lat=lat, lon=lon, crop=crop)
+    )
+    assert estimate > 0
+    assert confidence in ("Low", "Medium")
+    assert f"{country if country == 'USA' else 'China'} national benchmark" in note
+
+
+@pytest.mark.parametrize(
+    ("lat", "lon", "crop"),
+    [
+        (42.03, -93.62, "date_palm"),
+        (34.75, 113.62, "sugarcane"),
+    ],
+)
+def test_country_benchmark_crop_keys_are_mapped(lat, lon, crop):
+    estimate, _, note = estimate_yield(make(lat=lat, lon=lon, crop=crop))
+    assert estimate > 0
+    assert "national benchmark" in note
+
+
+def test_unmodeled_location_uses_low_confidence_climate_soil_heuristic():
+    estimate, confidence, note = estimate_yield(
+        make(
+            lat=0.0,
+            lon=0.0,
+            crop="maize",
+            avg_temp_c=27.0,
+            max_temp_c=35.0,
+            total_precip_mm=80.0,
+            soil_moisture_root=0.6,
+            soil_texture="loam",
+            irrigation_availability="limited",
+        )
+    )
+    assert estimate > 0
+    assert confidence == "Low"
+    assert "heuristic estimate" in note
+    assert "not a locally validated model" in note
+
+
+def test_unmodeled_location_estimate_falls_under_severe_heat_stress():
+    normal, _, _ = estimate_yield(make(lat=0.0, lon=0.0, crop="maize"))
+    heat_stressed, _, _ = estimate_yield(
+        make(lat=0.0, lon=0.0, crop="maize", avg_temp_c=40.0, max_temp_c=50.0)
+    )
+    assert 0 < heat_stressed < normal
+
+
+def test_unmodeled_location_without_crop_baseline_is_reported():
+    estimate, confidence, note = estimate_yield(
+        make(lat=0.0, lon=0.0, crop="berseem_clover")
+    )
+    assert estimate == 0.0
+    assert confidence == "Low"
+    assert "no estimate was generated" in note

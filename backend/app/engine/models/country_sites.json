@@ -1,0 +1,177 @@
+[
+ {
+  "country": "USA",
+  "id": "ar_delta",
+  "name": "Stuttgart, Arkansas",
+  "lat": 34.5,
+  "lon": -91.55
+ },
+ {
+  "country": "USA",
+  "id": "ca_coachella",
+  "name": "Indio, California (Coachella Valley)",
+  "lat": 33.72,
+  "lon": -116.37
+ },
+ {
+  "country": "USA",
+  "id": "ca_sacramento",
+  "name": "Colusa, California",
+  "lat": 39.21,
+  "lon": -122.01
+ },
+ {
+  "country": "USA",
+  "id": "ca_sanjoaquin",
+  "name": "Fresno, California",
+  "lat": 36.74,
+  "lon": -119.79
+ },
+ {
+  "country": "USA",
+  "id": "fl_cane",
+  "name": "Belle Glade, Florida",
+  "lat": 26.68,
+  "lon": -80.67
+ },
+ {
+  "country": "USA",
+  "id": "fl_tomato",
+  "name": "Immokalee, Florida",
+  "lat": 26.42,
+  "lon": -81.42
+ },
+ {
+  "country": "USA",
+  "id": "illinois",
+  "name": "Champaign, Illinois",
+  "lat": 40.12,
+  "lon": -88.24
+ },
+ {
+  "country": "USA",
+  "id": "iowa",
+  "name": "Ames, Iowa",
+  "lat": 42.03,
+  "lon": -93.62
+ },
+ {
+  "country": "USA",
+  "id": "kansas",
+  "name": "Salina, Kansas",
+  "lat": 38.84,
+  "lon": -97.61
+ },
+ {
+  "country": "USA",
+  "id": "la_cane",
+  "name": "Thibodaux, Louisiana",
+  "lat": 29.8,
+  "lon": -90.82
+ },
+ {
+  "country": "USA",
+  "id": "la_rice",
+  "name": "Crowley, Louisiana",
+  "lat": 30.21,
+  "lon": -92.37
+ },
+ {
+  "country": "USA",
+  "id": "ms_delta",
+  "name": "Greenwood, Mississippi",
+  "lat": 33.52,
+  "lon": -90.18
+ },
+ {
+  "country": "USA",
+  "id": "north_dakota",
+  "name": "Fargo, North Dakota",
+  "lat": 46.88,
+  "lon": -96.79
+ },
+ {
+  "country": "USA",
+  "id": "texas_hp",
+  "name": "Lubbock, Texas",
+  "lat": 33.58,
+  "lon": -101.85
+ },
+ {
+  "country": "CHINA",
+  "id": "guangxi",
+  "name": "Chongzuo, Guangxi",
+  "lat": 22.38,
+  "lon": 107.36
+ },
+ {
+  "country": "CHINA",
+  "id": "hebei",
+  "name": "Handan, Hebei",
+  "lat": 36.61,
+  "lon": 114.49
+ },
+ {
+  "country": "CHINA",
+  "id": "heilongjiang",
+  "name": "Harbin, Heilongjiang",
+  "lat": 45.75,
+  "lon": 126.63
+ },
+ {
+  "country": "CHINA",
+  "id": "henan",
+  "name": "Zhengzhou, Henan",
+  "lat": 34.75,
+  "lon": 113.62
+ },
+ {
+  "country": "CHINA",
+  "id": "hubei",
+  "name": "Jingzhou, Hubei",
+  "lat": 30.33,
+  "lon": 112.24
+ },
+ {
+  "country": "CHINA",
+  "id": "hunan",
+  "name": "Changsha, Hunan",
+  "lat": 28.23,
+  "lon": 112.94
+ },
+ {
+  "country": "CHINA",
+  "id": "jiangsu",
+  "name": "Yancheng, Jiangsu",
+  "lat": 33.35,
+  "lon": 120.16
+ },
+ {
+  "country": "CHINA",
+  "id": "jilin",
+  "name": "Changchun, Jilin",
+  "lat": 43.82,
+  "lon": 125.32
+ },
+ {
+  "country": "CHINA",
+  "id": "shandong",
+  "name": "Dezhou, Shandong",
+  "lat": 37.45,
+  "lon": 116.31
+ },
+ {
+  "country": "CHINA",
+  "id": "xinjiang",
+  "name": "Korla, Xinjiang",
+  "lat": 41.76,
+  "lon": 86.15
+ },
+ {
+  "country": "CHINA",
+  "id": "yunnan_cane",
+  "name": "Lincang, Yunnan",
+  "lat": 23.88,
+  "lon": 100.09
+ }
+]

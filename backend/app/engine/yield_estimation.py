@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 import joblib
 
+from app.engine import country_models
 from app.engine._model_compat import ensure_legacy_sklearn_pickle_compat
 from app.schemas.contracts import EnvironmentalFeatures
 
@@ -99,7 +100,7 @@ _SOIL_TO_LABEL = {
 _REF_LOCATIONS = [
     ("nile_delta", "Nile Delta (Kafr El-Sheikh)", 31.11, 30.94),
     ("fayoum", "Fayoum Oasis", 29.31, 30.84),
-    ("upper_egypt", "Upper Egypt", 25.69, 32.64),
+    ("upper_egypt", "Upper Egypt (Minya)", 25.69, 32.64),
     ("new_valley", "New Valley (Kharga)", 25.45, 30.55),
 ]
 
@@ -155,7 +156,17 @@ def _nearest_location(lat: float, lon: float) -> tuple[str, float]:
 
 
 def estimate_yield(features: EnvironmentalFeatures) -> tuple[float, str, str]:
-    """Frozen contract wrapper around CropYieldPredictor -> (yield_kg_ha, confidence, note)."""
+    """Frozen contract wrapper -> (yield_kg_ha, confidence, note).
+
+    Egypt: the trained Random Forest. USA / China: a national-yield benchmark (trend of the last years)
+    from engine/models/yield_country.json. Elsewhere: an explicit "no model" answer, never a guess.
+    """
+    country, dist = country_models.country_of(features.lat, features.lon)
+    if country in ("USA", "CHINA"):
+        return _country_yield(features, country, dist)
+    if country is None:
+        return 0.0, "Low", (f"No yield model covers this location (nearest reference site {dist:.0f} km away; "
+                            "models exist for Egypt, USA and China).")
     crop_key = features.crop.strip().lower().replace(" ", "_")
     raw_item = _CROP_TO_ITEM.get(crop_key, features.crop)
     item = _match_category("Item", [raw_item, crop_key], fallback_first=False)
@@ -202,3 +213,17 @@ def estimate_yield(features: EnvironmentalFeatures) -> tuple[float, str, str]:
         f"{loc_name}, {km:.0f} km away)."
     )
     return yield_kg_ha, confidence, note
+
+
+def _country_yield(features: EnvironmentalFeatures, country: str, dist_km: float) -> tuple[float, str, str]:
+    year = date.fromisoformat(features.planting_date).year
+    b = country_models.yield_benchmark(country, features.crop, year)
+    if b is None:
+        return 0.0, "Low", f"{features.crop} has no {country} yield benchmark (crops: wheat, maize, rice, tomato, cotton)."
+    conf = "Medium" if b["relative_sd"] < 0.10 and dist_km <= 500 else "Low"
+    how = "linear trend of recent years" if b["method"] == "trend" else "median of the last 8 years"
+    label = {"USA": "USA", "CHINA": "China"}[country]
+    note = (f"{label} national benchmark ({how}, FAOSTAT {b['last_year'] - b['n_years'] + 1}-{b['last_year']}): "
+            f"{b['kg_ha']:.0f} kg/ha, 80% range {b['low']:.0f}-{b['high']:.0f}. Country-level average, not this "
+            f"field; weather does not change it because no weather model passed validation.")
+    return round(b["kg_ha"], 1), conf, note

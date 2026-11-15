@@ -8,6 +8,7 @@ from pathlib import Path
 import joblib
 import pandas as pd
 
+from app.engine import country_models
 from app.engine._model_compat import ensure_legacy_sklearn_pickle_compat
 from app.engine._reference import load_crops, load_rules
 from app.schemas.contracts import EnvironmentalFeatures, RotationOption
@@ -155,6 +156,21 @@ def _get_hybrid_engine() -> OptimalHybridRotationEngine:
 
 
 def _ml_probs_for_features(f: EnvironmentalFeatures) -> dict[str, float]:
+    """Crop-suitability prior {crop_key: 0-1} for this place, or {} when no validated model applies.
+
+    USA / China: engine/country_models.py (validated crops only). Elsewhere: the old Egypt model,
+    ignored if its output is constant (it was found to predict the same probabilities for every input).
+    """
+    country, _ = country_models.country_of(f.lat, f.lon)
+    if country in ("USA", "CHINA"):
+        return country_models.suitability(country, f)
+    if country is None:
+        return {}
+    probs = _egypt_probs_for_features(f)
+    return probs if len({round(p, 4) for p in probs.values()}) > 1 else {}
+
+
+def _egypt_probs_for_features(f: EnvironmentalFeatures) -> dict[str, float]:
     dt = date.fromisoformat(f.planting_date)
     item_name = _KEY_TO_ITEM.get(f.crop.lower(), f.crop.capitalize())
     prev_raw = getattr(f, "previous_crop", None) or "Wheat"
@@ -352,7 +368,7 @@ def _reason(
     if stressed:
         msg += "; current NDVI is falling, so soil health was weighted up"
     if has_ml:
-        msg += "; ranked with hybrid XGBoost + agronomic scoring"
+        msg += "; a country crop-suitability prior (15% weight) adjusted the ranking"
     return msg + "."
 
 
@@ -377,7 +393,6 @@ def recommend_rotations(features: EnvironmentalFeatures) -> list[RotationOption]
     stressed = f.ndvi_trend < NDVI_STRESS_TREND
     weights = _normalised_weights(f, stressed)
     ml_probs = _ml_probs_for_features(f)
-    has_ml = bool(ml_probs)
 
     scored = []
     for combo in itertools.product(*slot_options):
@@ -388,19 +403,20 @@ def recommend_rotations(features: EnvironmentalFeatures) -> list[RotationOption]
         agronomic = sum(weights[k] * comps[k] for k in CRITERIA)
         if cur_name and db.get(cur_name, {}).get("heavy_feeder") and "berseem_clover" in combo:
             agronomic += 0.07
-        if has_ml:
-            ml_bonus = sum(ml_probs.get(c, 0.2) for c in combo) / len(combo)
-            total = _clip(0.85 * agronomic + 0.15 * ml_bonus)
+        known = [c for c in combo if c in ml_probs]
+        if ml_probs:
+            prior = sum(ml_probs.get(c, 0.5) for c in combo) / len(combo)
+            total = _clip(0.85 * agronomic + 0.15 * prior)
         else:
             total = agronomic
-        scored.append((total, SEP.join(combo), chain, comps))
+        scored.append((total, SEP.join(combo), chain, comps, bool(known)))
 
     scored.sort(key=lambda t: (-t[0], t[1]))
     return [
         RotationOption(
             crop=seq,
             score=round(total, 2),
-            reason=_reason(chain, comps, weights, stressed, has_ml=has_ml),
+            reason=_reason(chain, comps, weights, stressed, has_ml=used_ml),
         )
-        for total, seq, chain, comps in scored[:3]
+        for total, seq, chain, comps, used_ml in scored[:3]
     ]

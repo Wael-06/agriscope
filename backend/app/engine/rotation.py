@@ -1,218 +1,86 @@
-from __future__ import annotations
+import pandas as pd
+import joblib
+import os
 
-import itertools
-from datetime import date
+class OptimalHybridRotationEngine:
+    def __init__(self, ml_model_path='xgboost_rotation_model.pkl', preprocessor_path='xgboost_rotation_preprocessor.pkl', encoder_path='xgboost_label_encoder.pkl', dataset_path='egypt_4loc_5crops_dataset (1).csv'):
+        self.has_ml = False
+        if os.path.exists(ml_model_path) and os.path.exists(preprocessor_path) and os.path.exists(encoder_path):
+            try:
+                self.model = joblib.load(ml_model_path)
+                self.preprocessor = joblib.load(preprocessor_path)
+                self.label_encoder = joblib.load(encoder_path)
+                self.has_ml = True
+            except Exception as e:
+                print(f"ML loading skipped: {e}")
 
-from app.engine._reference import load_crops, load_rules
-from app.schemas.contracts import EnvironmentalFeatures, RotationOption
+        self.df = pd.read_csv(dataset_path)
+        mask = self.df['hg/ha_yield'].isnull() & self.df['production_tonnes'].notnull()
+        self.df.loc[mask, 'hg/ha_yield'] = self.df.loc[mask, 'production_tonnes'] * 10000 / 102650
+        
+        self.crop_stats = self.df.groupby('Item').agg(
+            avg_yield=('hg/ha_yield', 'mean'),
+            avg_water=('rain_mm_per_day', 'mean')
+        ).to_dict(orient='index')
 
-SEP = " → "                    # crop field = "berseem_clover → maize → wheat"
-CRITERIA = ("soil_health", "water_demand", "climate_suitability", "rotation_diversity")
-DEFAULT_WEIGHTS = {"soil_health": 0.35, "water_demand": 0.30,
-                   "climate_suitability": 0.25, "rotation_diversity": 0.10}
+    def _engineer_features(self, input_dict: dict) -> pd.DataFrame:
+        df = pd.DataFrame([input_dict])
+        date_series = pd.to_datetime({'year': 2024, 'month': df['Month'], 'day': df['Day']})
+        df['DayOfYear'] = date_series.dt.dayofyear
+        df['Season'] = df['Month'].apply(lambda m: 'Winter' if m in [12, 1, 2] else ('Spring' if m in [3, 4, 5] else ('Summer' if m in [6, 7, 8] else 'Autumn')))
+        df['temp_range'] = df['max_temp'] - df['min_temp']
+        df['temp_humidity_interaction'] = df['avg_temp'] * (df['rel_humidity'] / 100.0)
+        return df
 
-# ---- tunable assumptions (documented, not hidden) ---------------------------
-SEASONAL_SWING_C = 10.0        # summer-minus-winter temperature gap used to project
-HIGH_WATER_MM = 800            # crops above this are excluded when irrigation == "none"
-NDVI_STRESS_TREND = -0.05      # ndvi_trend below this => current crop under stress
-NDVI_SOIL_BOOST = 1.15         # soil_health weight multiplier under stress (then renormalised)
-MAX_GAP_MONTHS = 5             # max months between previous harvest and next planting
-LOW_SOIL_MOISTURE = 0.30
+    def get_recommendations(self, farm_input: dict, weights: dict = None) -> list:
+        if weights is None:
+            weights = {"soil_health": 0.35, "water_demand": 0.30, "climate_suitability": 0.25, "rotation_diversity": 0.10}
 
+        current_crop = farm_input.get('Item', 'Wheat')
+        all_crops = self.df['Item'].unique()
+        valid_candidates = [c for c in all_crops if c != current_crop]
 
-def _db() -> dict:
-    return load_crops()
+        ml_probs = {}
+        if self.has_ml:
+            try:
+                processed_df = self._engineer_features(farm_input)
+                cat_cols = ['location_name', 'soil', 'Item', 'previous_crop', 'Season']
+                num_cols = ['lat', 'lon', 'avg_temp', 'max_temp', 'min_temp', 'rain_mm_per_day', 'rel_humidity', 'Month', 'Day', 'DayOfYear', 'temp_range', 'temp_humidity_interaction', 'hg/ha_yield']
+                
+                X_trans = self.preprocessor.transform(processed_df[cat_cols + num_cols])
+                if hasattr(self.model, "predict_proba"):
+                    probs = self.model.predict_proba(X_trans)[0]
+                    classes_encoded = self.model.classes_
+                    # Decode integer class indices back to string crop names
+                    classes_decoded = self.label_encoder.inverse_transform(classes_encoded)
+                    ml_probs = dict(zip(classes_decoded, probs))
+            except Exception as e:
+                print(f"ML inference exception: {e}")
 
+        recommendations = []
+        for crop in valid_candidates:
+            soil_health_score = 0.90 if 'Cotton' in crop or 'Legume' in crop else 0.65
+            hist_yield = self.crop_stats.get(crop, {}).get('avg_yield', 50000)
+            yield_score = min(float(hist_yield) / 450000.0, 1.0)
+            water_score = 0.80 if farm_input.get('rain_mm_per_day', 0) > 0.05 or crop != 'Rice, paddy' else 0.40
+            diversity_score = 0.85
 
-# ------------------------------------------------------------------ helpers
-def _clip(x: float, lo: float = 0.0, hi: float = 1.0) -> float:
-    return max(lo, min(hi, x))
+            agronomic_score = (
+                weights["soil_health"] * soil_health_score +
+                weights["water_demand"] * water_score +
+                weights["climate_suitability"] * yield_score +
+                weights["rotation_diversity"] * diversity_score
+            )
 
+            ml_score = ml_probs.get(crop, 0.5)
+            final_score = (0.5 * ml_score) + (0.5 * agronomic_score)
 
-def season_of_month(month: int) -> str:
-    return "winter" if month in (11, 12, 1, 2, 3, 4) else "summer"
+            reason = f"Hybrid recommendation blending XGBoost probability and agronomic score." if crop in ml_probs else f"Agronomic baseline score."
 
+            recommendations.append({
+                "crop": crop,
+                "score": round(float(final_score), 2),
+                "reason": reason
+            })
 
-def _opposite(season: str) -> str:
-    return "summer" if season == "winter" else "winter"
-
-
-def _normalised_weights(f: EnvironmentalFeatures, stressed: bool) -> dict:
-    raw = {k: max(0.0, float(f.rotation_priority_weights.get(k, 0.0))) for k in CRITERIA}
-    if sum(raw.values()) <= 0:
-        raw = dict(DEFAULT_WEIGHTS)
-    if stressed:
-        raw["soil_health"] *= NDVI_SOIL_BOOST
-    total = sum(raw.values())
-    return {k: v / total for k, v in raw.items()}
-
-
-def _current_season(f: EnvironmentalFeatures, cur: dict | None) -> str:
-    """Season the current crop occupies (crop's own season if it has only one)."""
-    if cur and len(cur["seasons"]) == 1:
-        return cur["seasons"][0]
-    month = date.fromisoformat(f.planting_date).month
-    return season_of_month(month)
-
-
-# ------------------------------------------------------- hard constraints (B)
-def _allowed_in_slot(name: str, crop: dict, season: str, f: EnvironmentalFeatures) -> bool:
-    if season not in crop["seasons"]:
-        return False
-    if f.irrigation_availability == "none" and crop["water_req_mm"] > HIGH_WATER_MM:
-        return False
-    return True
-
-
-def _calendar_ok(prev_name: str | None, prev_season: str, name: str, season: str) -> bool:
-    """Next crop must be plantable soon enough after the previous one is harvested."""
-    db = _db()
-    if prev_name is None or prev_name not in db:
-        return True
-    prev_win = db[prev_name]["windows"].get(prev_season)
-    win = db[name]["windows"].get(season)
-    if not prev_win or not win:
-        return False
-    gap = (max(win["plant"]) - max(prev_win["harvest"])) % 12
-    return gap <= MAX_GAP_MONTHS
-
-
-def _valid(chain: list[str | None], seasons: list[str]) -> bool:
-    """chain[0] is the current crop (may be None); seasons aligns with chain."""
-    db = _db()
-    names = [c for c in chain if c is not None]
-    rules = load_rules()
-    for a, b in zip(chain, chain[1:]):
-        rule = rules.get((a, b)) if a is not None else None
-        if rule is not None and not rule["allowed"]:  # e.g. same crop twice in a row
-            return False
-    for n in set(names):
-        if db[n]["no_repeat"] and names.count(n) > 1:  # rice / cotton / tomato
-            return False
-    for i in range(1, len(chain)):
-        if not _calendar_ok(chain[i - 1], seasons[i - 1], chain[i], seasons[i]):
-            return False
-    return True
-
-
-# ------------------------------------------------------------- scoring (C)
-def _soil_transition(prev: str | None, cur: str) -> float:
-    """Soil-health score of prev -> cur, read from rotation_rules.csv (neutral if unknown)."""
-    rule = load_rules().get((prev, cur)) if prev else None
-    return rule["soil_score"] if rule else 0.55
-
-
-def _water_score(crop: dict, f: EnvironmentalFeatures) -> float:
-    max_req = max(c["water_req_mm"] for c in _db().values())
-    rel = crop["water_req_mm"] / max_req
-    s = 1.0 - rel
-    if f.irrigation_availability == "limited":
-        s -= 0.10 * rel
-    elif f.irrigation_availability == "none":
-        s -= 0.20 * rel
-    if f.soil_moisture_root < LOW_SOIL_MOISTURE:
-        s -= 0.10 * rel
-    return _clip(s)
-
-
-def _climate_score(crop: dict, slot_season: str, obs_season: str, f: EnvironmentalFeatures) -> float:
-    shift = 0.0
-    if slot_season != obs_season:
-        shift = SEASONAL_SWING_C if slot_season == "summer" else -SEASONAL_SWING_C
-    t_avg, t_max = f.avg_temp_c + shift, f.max_temp_c + shift
-    lo, hi = crop["temp_opt_c"]
-    d = max(lo - t_avg, t_avg - hi, 0.0)
-    s_avg = _clip(1.0 - d / 10.0)
-    excess = max(0.0, t_max - crop["temp_max_c"])
-    s_max = _clip(1.0 - 0.10 * excess)
-    return 0.6 * s_avg + 0.4 * s_max
-
-
-def score_sequence(chain: list[str | None], seasons: list[str], f: EnvironmentalFeatures,
-                   obs_season: str) -> dict:
-    """Return the four 0-1 criterion scores for one chain (chain[0] = current crop)."""
-    db = _db()
-    soil = [_soil_transition(chain[i - 1], chain[i]) for i in range(1, len(chain))]
-    future = chain[1:]
-    water = [_water_score(db[c], f) for c in future]
-    climate = [_climate_score(db[c], seasons[i + 1], obs_season, f) for i, c in enumerate(future)]
-    families = {db[c]["family"] for c in chain if c is not None}
-    n_crops = len([c for c in chain if c is not None])
-    return {
-        "soil_health": sum(soil) / len(soil),
-        "water_demand": sum(water) / len(water),
-        "climate_suitability": sum(climate) / len(climate),
-        "rotation_diversity": len(families) / n_crops,
-    }
-
-
-# --------------------------------------------------------------- reasons (D)
-def _reason(chain: list[str | None], comps: dict, weights: dict, stressed: bool) -> str:
-    db = _db()
-    top = max(CRITERIA, key=lambda k: weights[k] * comps[k])
-    pretty = lambda n: n.replace("_", " ")
-    legume_msg = None
-    for i in range(1, len(chain)):
-        cur, prev = chain[i], chain[i - 1]
-        if db[cur]["n_fixing"]:
-            if prev and db[prev]["heavy_feeder"]:
-                legume_msg = f"{pretty(cur)} (legume) after {pretty(prev)} rebuilds soil nitrogen"
-            else:
-                legume_msg = f"{pretty(cur)} (legume) fixes nitrogen"
-            break
-    if top == "soil_health":
-        msg = legume_msg or "Low-conflict crop transitions protect soil health"
-        msg = msg[0].upper() + msg[1:]
-    elif top == "water_demand":
-        avg = sum(db[c]["water_req_mm"] for c in chain[1:]) / (len(chain) - 1)
-        msg = f"Low water demand (about {avg:.0f} mm per season on average)"
-    elif top == "climate_suitability":
-        msg = "Crops fit the local temperature range"
-    else:
-        n = len({db[c]["family"] for c in chain if c})
-        msg = f"Diverse rotation ({n} crop families) breaks pest and disease cycles"
-    if legume_msg and top != "soil_health":
-        msg += f"; {legume_msg}"
-    if stressed:
-        msg += "; current NDVI is falling, so soil health was weighted up"
-    return msg + "."
-
-
-# ------------------------------------------------------------------ public
-def recommend_rotations(features: EnvironmentalFeatures) -> list[RotationOption]:
-    """Top-3 valid rotation sequences. Returns [] if no sequence survives the constraints."""
-    db = _db()
-    f = features
-    cur_name = f.crop if f.crop in db else None
-    cur = db.get(cur_name) if cur_name else None
-
-    cur_season = _current_season(f, cur)
-    obs_season = season_of_month(date.fromisoformat(f.planting_date).month)
-    horizon = max(1, int(f.planning_horizon_seasons))
-
-    seasons = [cur_season]
-    for _ in range(horizon):
-        seasons.append(_opposite(seasons[-1]))
-
-    slot_options = [
-        [n for n, c in db.items() if _allowed_in_slot(n, c, s, f)] for s in seasons[1:]
-    ]
-
-    stressed = f.ndvi_trend < NDVI_STRESS_TREND
-    weights = _normalised_weights(f, stressed)
-
-    scored = []
-    for combo in itertools.product(*slot_options):
-        chain: list[str | None] = [cur_name, *combo]
-        if not _valid(chain, seasons):
-            continue
-        comps = score_sequence(chain, seasons, f, obs_season)
-        total = sum(weights[k] * comps[k] for k in CRITERIA)
-        scored.append((total, SEP.join(combo), chain, comps))
-
-    scored.sort(key=lambda t: (-t[0], t[1]))
-    return [
-        RotationOption(crop=seq, score=round(total, 2),
-                       reason=_reason(chain, comps, weights, stressed))
-        for total, seq, chain, comps in scored[:3]
-    ]
+        return sorted(recommendations, key=lambda x: x['score'], reverse=True)[:3]

@@ -129,6 +129,30 @@
           Analyze Field & Get Recommendations
         </button>
       </form>
+
+      <section class="panel-section advisor-section" aria-labelledby="advisor-title">
+        <h2 id="advisor-title">3. AI Field Advisor</h2>
+        <p class="sensor-caption">Get field-specific guidance based on your inputs and the latest environmental data.</p>
+        <div class="form-group">
+          <label for="advisor-language">Advice language</label>
+          <select id="advisor-language">
+            <option value="en">English</option>
+            <option value="ar">Arabic</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="advisor-question">Ask a question (optional)</label>
+          <textarea id="advisor-question" rows="3" maxlength="500" placeholder="For example: What should I check before irrigating?"></textarea>
+        </div>
+        <button type="button" id="advisor-btn" class="secondary-btn">Show AI Advice</button>
+        <div id="advisor-response" class="advisor-response hidden" aria-live="polite">
+          <p id="advisor-status" class="sensor-caption" role="status"></p>
+          <div id="advisor-facts" class="advisor-facts hidden" aria-label="Field data highlights"></div>
+          <div id="advisor-advice" class="advisor-advice hidden"></div>
+          <h3 id="advisor-sources-title" class="advisor-sources-title hidden">Sources</h3>
+          <ul id="advisor-sources" class="advisor-sources hidden"></ul>
+        </div>
+      </section>
     </aside>
 
     <section class="main-content">

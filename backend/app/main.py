@@ -22,7 +22,7 @@ def root():
     return {
         "service": "AgriScope API",
         "docs": "/docs",
-        "endpoints": ["/health", "/regions", "/recommendation", "/trends"]
+        "endpoints": ["/health", "/regions", "/recommendation", "/advisor", "/trends"]
     }
 
 @app.get("/health")

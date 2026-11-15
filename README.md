@@ -313,8 +313,13 @@ source .venv/bin/activate
 
 pip install -r requirements.txt
 
+# Optional: enable Gemini-generated field advice
+export GEMINI_API_KEY=your_key
+
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
+
+On Windows PowerShell, set the key with `$env:GEMINI_API_KEY="your_key"` before starting the backend. For local development, the backend also loads a `.env` file from the `backend/` directory (or the advisor module directory). The AI Field Advisor button sends the selected field inputs to `POST /advisor`; without a Gemini key, it clearly reports that it is showing built-in guidance instead.
 
 The API documentation is available at:
 
@@ -358,6 +363,7 @@ docker run -p 8080:8080 agriscope-backend
 | GET | `/regions` | Available regional presets |
 | GET | `/trends` | Historical climate, NDVI, and forecast data |
 | POST | `/recommendation` | Irrigation, rotation, and yield analysis |
+| POST | `/advisor` | Field-specific AI advice using environmental data and farmer inputs |
 | POST | `/api/telemetry` | Receive field-sensor readings |
 | GET | `/api/telemetry/{device_id}/status` | Retrieve sensor status |
 | GET | `/api/device/command` | Retrieve pending device commands |

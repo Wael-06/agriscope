@@ -76,6 +76,26 @@ async function postRecommendation(payload) {
   }
 }
 
+async function postAdvisor(payload) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/advisor`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(error.detail || `Backend /advisor error (${res.status})`);
+    }
+    const data = await res.json();
+    setApiStatus(true);
+    return data;
+  } catch (err) {
+    setApiStatus(false);
+    throw err;
+  }
+}
+
 async function fetchTelemetryStatus(deviceId) {
   try {
     const res = await fetch(

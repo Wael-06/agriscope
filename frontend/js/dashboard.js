@@ -60,6 +60,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     runFullAnalysis();
   });
 
+  document.getElementById("advisor-btn").addEventListener("click", requestFieldAdvice);
+
   document.getElementById("use-live-sensor").addEventListener("change", () => {
     updateSensorVisibility();
     runFullAnalysis();
@@ -79,6 +81,185 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupPrioritySliders();
   runFullAnalysis();
 });
+
+async function requestFieldAdvice() {
+  const form = document.getElementById("farmer-form");
+  if (!form.reportValidity()) return;
+
+  const button = document.getElementById("advisor-btn");
+  const response = document.getElementById("advisor-response");
+  const status = document.getElementById("advisor-status");
+  const advice = document.getElementById("advisor-advice");
+  const facts = document.getElementById("advisor-facts");
+  const sources = document.getElementById("advisor-sources");
+  const sourcesTitle = document.getElementById("advisor-sources-title");
+
+  button.disabled = true;
+  button.textContent = "Preparing advice...";
+  response.classList.remove("hidden");
+  response.setAttribute("aria-busy", "true");
+  status.textContent = "Collecting your field data and preparing advice...";
+  advice.replaceChildren();
+  advice.classList.add("hidden");
+  facts.replaceChildren();
+  facts.classList.add("hidden");
+  sources.replaceChildren();
+  sources.classList.add("hidden");
+  sourcesTitle.classList.add("hidden");
+
+  try {
+    const payload = {
+      ...collectFormPayload(),
+      language: document.getElementById("advisor-language").value,
+      question: document.getElementById("advisor-question").value.trim() || null
+    };
+    const result = await postAdvisor(payload);
+    status.textContent = result.used_llm
+      ? "Personalized advice based on your field data."
+      : result.error?.includes("GEMINI_API_KEY not set")
+        ? "AI is not configured. These are built-in suggestions, not AI-generated advice."
+        : "AI is unavailable. Showing built-in suggestions instead.";
+    const isArabic = payload.language === "ar";
+    advice.dir = isArabic ? "rtl" : "auto";
+    renderAdvisorFacts(facts, result.facts, isArabic);
+    renderAdvisorSections(advice, result.advice);
+    advice.classList.remove("hidden");
+
+    (result.sources || []).forEach((source) => {
+      if (!source.url || !source.url.startsWith("https://")) return;
+      const item = document.createElement("li");
+      const link = document.createElement("a");
+      link.href = source.url;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = source.title || source.url;
+      item.append(link);
+      sources.append(item);
+    });
+    const hasSources = sources.childElementCount > 0;
+    sources.classList.toggle("hidden", !hasSources);
+    sourcesTitle.classList.toggle("hidden", !hasSources);
+  } catch (err) {
+    status.textContent = `Unable to get advice: ${err.message}`;
+  } finally {
+    button.disabled = false;
+    button.textContent = "Refresh AI Advice";
+    response.setAttribute("aria-busy", "false");
+  }
+}
+
+function renderAdvisorFacts(container, facts, isArabic) {
+  if (!facts) return;
+  const numberFormat = new Intl.NumberFormat(isArabic ? "ar" : "en", {
+    maximumFractionDigits: 1
+  });
+  const metrics = [];
+  const yieldEstimate = facts.yield?.kg_per_ha;
+  if (Number.isFinite(yieldEstimate)) {
+    const confidence = facts.yield.confidence
+      ? `Confidence: ${facts.yield.confidence}`
+      : "";
+    metrics.push([
+      "Yield estimate",
+      `${numberFormat.format(yieldEstimate)} kg/ha`,
+      confidence
+    ]);
+  }
+
+  const waterGap = facts.water?.gap_7d_mm;
+  if (Number.isFinite(waterGap)) {
+    metrics.push([
+      "7-day water gap",
+      `${numberFormat.format(waterGap)} mm`,
+      facts.water.status || ""
+    ]);
+  }
+
+  const ndviTrend = facts.ndvi?.trend_60d;
+  if (Number.isFinite(ndviTrend)) {
+    const change = `${ndviTrend > 0 ? "+" : ""}${ndviTrend.toFixed(2)}`;
+    metrics.push(["NDVI trend", change, "60 days"]);
+  }
+
+  metrics.forEach(([label, value, detail]) => {
+    const metric = document.createElement("div");
+    metric.className = "advisor-fact";
+    const metricLabel = document.createElement("span");
+    metricLabel.className = "advisor-fact-label";
+    metricLabel.textContent = label;
+    const metricValue = document.createElement("strong");
+    metricValue.textContent = value;
+    metric.append(metricLabel, metricValue);
+    if (detail) {
+      const metricDetail = document.createElement("small");
+      metricDetail.textContent = detail;
+      metric.append(metricDetail);
+    }
+    container.append(metric);
+  });
+  container.classList.toggle("hidden", metrics.length === 0);
+}
+
+function renderAdvisorSections(container, text) {
+  const headings = {
+    summary: "Summary",
+    "this season": "This season",
+    water: "Water",
+    "soil and nutrients": "Soil and nutrients",
+    "next seasons": "Next seasons",
+    "risks to watch": "Risks to watch"
+  };
+  const headingPattern = /^\s*(?:#{1,3}\s*)?(?:\*\*)?(Summary|This season|Water|Soil and nutrients|Next seasons|Risks to watch)(?:\*\*)?\s*:?\s*(.*?)\s*$/i;
+  const sections = [];
+  let currentSection = null;
+
+  (text || "").split(/\r?\n/).forEach((line) => {
+    const match = line.match(headingPattern);
+    if (match) {
+      currentSection = {
+        title: headings[match[1].toLowerCase()],
+        items: []
+      };
+      sections.push(currentSection);
+      if (match[2]) currentSection.items.push(cleanAdvisorLine(match[2]));
+    } else if (line.trim()) {
+      if (!currentSection) {
+        currentSection = { title: "Advice", items: [] };
+        sections.push(currentSection);
+      }
+      currentSection.items.push(cleanAdvisorLine(line));
+    }
+  });
+
+  sections
+    .filter((section) => section.items.length > 0)
+    .forEach((section, index) => {
+      const card = document.createElement("section");
+      card.className = "advisor-card";
+      if (section.title === "Summary") card.classList.add("advisor-card-summary");
+
+      const heading = document.createElement("h3");
+      const number = document.createElement("span");
+      number.className = "advisor-card-number";
+      number.textContent = String(index + 1).padStart(2, "0");
+      const title = document.createElement("span");
+      title.textContent = section.title;
+      heading.append(number, title);
+
+      const list = document.createElement("ul");
+      section.items.forEach((itemText) => {
+        const item = document.createElement("li");
+        item.textContent = itemText;
+        list.append(item);
+      });
+      card.append(heading, list);
+      container.append(card);
+    });
+}
+
+function cleanAdvisorLine(line) {
+  return line.trim().replace(/^(?:[-*•]|\d+[.)])\s+/, "").replace(/\*\*/g, "");
+}
 
 function updateCropOptions(region = null, allCropOptions = null) {
   const cropSelect = document.getElementById("crop");

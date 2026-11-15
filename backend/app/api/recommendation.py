@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.schemas.contracts import RecommendationRequest, RecommendationResponse, EnvironmentalFeatures
+from app.schemas.contracts import AdvisorRequest, RecommendationRequest, RecommendationResponse, EnvironmentalFeatures
 from app.services.nasa_power import get_power_summary
 from app.services.modis import get_ndvi_summary
 from app.services.open_meteo import get_weather_forecast
@@ -8,6 +8,7 @@ from app.engine.irrigation import compute_irrigation
 from app.engine.rotation import recommend_rotations, score_baseline_rotation
 from app.engine.yield_estimation import estimate_yield
 from app.engine.climatology import fallback_forecast
+from app.engine.advisor import advise
 
 router = APIRouter()
 
@@ -43,12 +44,10 @@ def _fallback_soil_moisture(soil_texture: str | None,
     )
 
 
-@router.post(
-    "/recommendation",
-    response_model=RecommendationResponse,
-    response_model_exclude_unset=True,
-)
-def create_recommendation(req: RecommendationRequest):
+def _build_environmental_features(
+    req: RecommendationRequest,
+    auto_irrigate: bool = True,
+) -> tuple[EnvironmentalFeatures, list[str], str, str, float | None]:
     month = int(req.planting_date[5:7])
     source_note = ""
     fallback_sources = []
@@ -111,7 +110,7 @@ def create_recommendation(req: RecommendationRequest):
             env["soil_moisture_top"] = fresh.soil_moisture_top
             env["avg_temp_c"] = fresh.temp_c
             sensor_note = " Calibrated with live field sensor."
-            if fresh.soil_moisture_top < 0.25:
+            if auto_irrigate and fresh.soil_moisture_top < 0.25:
                 set_command(req.device_id, irrigate=True, duration_sec=5, auto=True)
 
     feature_kwargs = dict(
@@ -130,6 +129,18 @@ def create_recommendation(req: RecommendationRequest):
         feature_kwargs["rotation_priority_weights"] = req.rotation_priority_weights
 
     features = EnvironmentalFeatures(**feature_kwargs)
+    return features, fallback_sources, source_note, sensor_note, satellite_soil_moisture_top
+
+
+@router.post(
+    "/recommendation",
+    response_model=RecommendationResponse,
+    response_model_exclude_unset=True,
+)
+def create_recommendation(req: RecommendationRequest):
+    features, fallback_sources, source_note, sensor_note, satellite_soil_moisture_top = (
+        _build_environmental_features(req)
+    )
 
     irrigation_mm, next_date = compute_irrigation(features)
     rotations = recommend_rotations(features)
@@ -153,3 +164,17 @@ def create_recommendation(req: RecommendationRequest):
             else {}
         ),
     )
+
+
+@router.post("/advisor")
+def create_advice(req: AdvisorRequest):
+    features, _, _, _, _ = _build_environmental_features(req, auto_irrigate=False)
+    result = advise(features, language=req.language, question=req.question)
+    return {
+        "advice": result["advice"],
+        "used_llm": result["used_llm"],
+        "sources": result["sources"],
+        "error": result["error"],
+        "model": result["model"],
+        "facts": result["facts"],
+    }

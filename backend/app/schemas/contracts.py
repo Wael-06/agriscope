@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 
 class RecommendationRequest(BaseModel):
@@ -15,6 +15,11 @@ class RecommendationRequest(BaseModel):
     rotation_priority_weights: Optional[dict] = None
     use_live_sensor: Optional[bool] = False
     device_id: Optional[str] = None
+
+
+class AdvisorRequest(RecommendationRequest):
+    language: Literal["en", "ar"] = "en"
+    question: Optional[str] = Field(default=None, max_length=500)
 
 
 class RotationOption(BaseModel):

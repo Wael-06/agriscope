@@ -67,12 +67,10 @@ class OptimalHybridRotationEngine:
         ml_model_path: str | Path | None = None,
         preprocessor_path: str | Path | None = None,
         encoder_path: str | Path | None = None,
-        dataset_path: str | Path | None = None,
     ):
         ml_model_path = Path(ml_model_path) if ml_model_path else _MODELS_DIR / "rotation_model.pkl"
         preprocessor_path = Path(preprocessor_path) if preprocessor_path else _MODELS_DIR / "rotation_preprocessor.pkl"
         encoder_path = Path(encoder_path) if encoder_path else _MODELS_DIR / "xgboost_label_encoder.pkl"
-        dataset_path = Path(dataset_path) if dataset_path else _MODELS_DIR / "egypt_4loc_5crops_dataset (1).csv"
 
         self.has_ml = False
         if ml_model_path.exists() and preprocessor_path.exists() and encoder_path.exists():
@@ -83,19 +81,6 @@ class OptimalHybridRotationEngine:
                 self.has_ml = True
             except Exception as e:
                 print(f"ML loading skipped: {e}")
-
-        self.crop_stats: dict = {}
-        if dataset_path.exists():
-            self.df = pd.read_csv(dataset_path)
-            mask = self.df["hg/ha_yield"].isnull() & self.df["production_tonnes"].notnull()
-            self.df.loc[mask, "hg/ha_yield"] = self.df.loc[mask, "production_tonnes"] * 10000 / 102650
-            self.crop_stats = (
-                self.df.groupby("Item")
-                .agg(avg_yield=("hg/ha_yield", "mean"), avg_water=("rain_mm_per_day", "mean"))
-                .to_dict(orient="index")
-            )
-        else:
-            self.df = pd.DataFrame(columns=["Item"])
 
     def _engineer_features(self, input_dict: dict) -> pd.DataFrame:
         df = pd.DataFrame([input_dict])

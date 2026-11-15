@@ -55,9 +55,31 @@ document.addEventListener("DOMContentLoaded", async () => {
     runFullAnalysis();
   });
 
+  document.getElementById("use-live-sensor").addEventListener("change", () => {
+    updateSensorVisibility();
+    runFullAnalysis();
+  });
+  document.getElementById("irrigate-now-btn").addEventListener("click", async () => {
+    const deviceId = document.getElementById("device-id").value.trim();
+    const statusEl = document.getElementById("sensor-command-status");
+    try {
+      await postDeviceCommand(deviceId, true, 5);
+      statusEl.textContent = "Irrigation command queued.";
+    } catch (err) {
+      statusEl.textContent = `Unable to send irrigation command: ${err.message}`;
+    }
+  });
+  updateSensorVisibility();
+
   setupPrioritySliders();
   runFullAnalysis();
 });
+
+function updateSensorVisibility() {
+  const enabled = document.getElementById("use-live-sensor").checked;
+  document.getElementById("sensor-options").classList.toggle("hidden", !enabled);
+  document.getElementById("sensor-status-card").classList.toggle("hidden", !enabled);
+}
 
 function getNormalizedPriorityWeights() {
   const rawSoil = parseFloat(document.getElementById("weight-soil").value) || 0;
@@ -102,7 +124,7 @@ function setupPrioritySliders() {
 }
 
 function collectFormPayload() {
-  return {
+  const payload = {
     lat: parseFloat(document.getElementById("lat").value),
     lon: parseFloat(document.getElementById("lon").value),
     crop: document.getElementById("crop").value,
@@ -114,6 +136,11 @@ function collectFormPayload() {
     planning_horizon_seasons: parseInt(document.getElementById("planning_horizon_seasons").value, 10),
     rotation_priority_weights: getNormalizedPriorityWeights()
   };
+  if (document.getElementById("use-live-sensor").checked) {
+    payload.use_live_sensor = true;
+    payload.device_id = document.getElementById("device-id").value.trim();
+  }
+  return payload;
 }
 
 async function runFullAnalysis() {
@@ -124,19 +151,47 @@ async function runFullAnalysis() {
 
   try {
     const payload = collectFormPayload();
-    const [recResult, trendsData] = await Promise.all([
-      postRecommendation(payload),
-      fetchTrends(payload.lat, payload.lon)
+    const recResult = await postRecommendation(payload);
+    const [trendsData, sensorStatus] = await Promise.all([
+      fetchTrends(payload.lat, payload.lon),
+      payload.use_live_sensor
+        ? fetchTelemetryStatus(payload.device_id)
+        : Promise.resolve(null)
     ]);
 
     renderRecommendationDashboard(recResult.data, payload, recResult.isLive);
     renderEarthIntelligenceCharts(trendsData);
+    if (sensorStatus) renderSensorStatus(recResult.data, sensorStatus);
   } catch (err) {
     errorEl.textContent = `Unable to render analysis: ${err.message}`;
     errorEl.classList.remove("hidden");
   } finally {
     loadingEl.classList.add("hidden");
   }
+}
+
+function renderSensorStatus(recommendation, status) {
+  const online = Boolean(status.online);
+  const dot = document.getElementById("sensor-online-dot");
+  dot.classList.toggle("sensor-online", online);
+  dot.classList.toggle("sensor-offline", !online);
+  document.getElementById("sensor-online-label").textContent =
+    online ? "Live Node Online" : "Live Node Offline";
+
+  const satelliteMoisture = recommendation.satellite_soil_moisture_top;
+  document.getElementById("satellite-soil-moisture").textContent =
+    Number.isFinite(satelliteMoisture)
+      ? `${(satelliteMoisture * 100).toFixed(1)}%`
+      : "Unavailable";
+
+  const liveMoisture = status.reading?.soil_moisture_top;
+  document.getElementById("live-soil-moisture").textContent =
+    Number.isFinite(liveMoisture) ? `${(liveMoisture * 100).toFixed(1)}%` : "—";
+
+  const receivedAt = status.last_seen ? Date.parse(status.last_seen) : NaN;
+  document.getElementById("sensor-last-seen").textContent = Number.isFinite(receivedAt)
+    ? `Last seen ${Math.max(0, Math.floor((Date.now() - receivedAt) / 1000))}s ago`
+    : "No telemetry received yet";
 }
 
 function renderRecommendationDashboard(data, payload, isLive) {

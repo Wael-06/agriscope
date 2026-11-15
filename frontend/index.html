@@ -109,6 +109,21 @@
           <input type="number" id="planning_horizon_seasons" min="1" max="6" value="3" required />
         </div>
 
+        <div class="sensor-controls">
+          <label class="sensor-toggle" for="use-live-sensor">
+            <input type="checkbox" id="use-live-sensor" />
+            <span>I have a connected field sensor (ESP32)</span>
+          </label>
+          <div id="sensor-options" class="hidden">
+            <div class="form-group">
+              <label for="device-id">Device ID</label>
+              <input type="text" id="device-id" value="demo-esp32-01" />
+            </div>
+            <button type="button" id="irrigate-now-btn" class="secondary-btn">Irrigate Now</button>
+            <p id="sensor-command-status" class="sensor-caption" aria-live="polite"></p>
+          </div>
+        </div>
+
         <button type="submit" id="submit-btn" class="primary-btn">
           Analyze Field & Get Recommendations
         </button>
@@ -124,6 +139,20 @@
         Fetching NASA POWER, MODIS NDVI & Open-Meteo data...
       </div>
       <div id="error-state" class="state-banner error-banner hidden"></div>
+      <section id="sensor-status-card" class="sensor-status-card hidden" aria-live="polite">
+        <div class="sensor-status-header">
+          <h3>Field Sensor Comparison</h3>
+          <span class="sensor-online-state">
+            <span id="sensor-online-dot" class="sensor-dot sensor-offline"></span>
+            <span id="sensor-online-label">Live Node Offline</span>
+          </span>
+        </div>
+        <div class="sensor-comparison">
+          <div><span>NASA Satellite Soil Moisture</span><strong id="satellite-soil-moisture">—</strong></div>
+          <div><span>Live ESP32 Ground Sensor</span><strong id="live-soil-moisture">—</strong></div>
+        </div>
+        <p id="sensor-last-seen" class="sensor-caption">No telemetry received yet</p>
+      </section>
 
       <div id="dashboard-content">
         <div class="cards-grid">

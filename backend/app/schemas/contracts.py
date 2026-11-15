@@ -13,6 +13,8 @@ class RecommendationRequest(BaseModel):
     irrigation_availability: Optional[str] = "available"
     planning_horizon_seasons: int = 3
     rotation_priority_weights: Optional[dict] = None
+    use_live_sensor: Optional[bool] = False
+    device_id: Optional[str] = None
 
 
 class RotationOption(BaseModel):
@@ -63,3 +65,4 @@ class RecommendationResponse(BaseModel):
     notes: str
     soil_texture: str = "clay"
     irrigation_availability: str = "available"
+    satellite_soil_moisture_top: Optional[float] = None

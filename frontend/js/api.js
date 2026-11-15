@@ -74,6 +74,31 @@ async function postRecommendation(payload) {
   }
 }
 
+async function fetchTelemetryStatus(deviceId) {
+  try {
+    const res = await fetch(
+      `${API_BASE_URL}/api/telemetry/${encodeURIComponent(deviceId)}/status`
+    );
+    if (!res.ok) throw new Error("Backend telemetry status error");
+    return await res.json();
+  } catch (_) {
+    return { online: false, last_seen: null, reading: null };
+  }
+}
+
+async function postDeviceCommand(deviceId, irrigate, durationSec = 5) {
+  const query = new URLSearchParams({
+    device_id: deviceId,
+    irrigate: String(irrigate),
+    duration_sec: String(durationSec)
+  });
+  const res = await fetch(`${API_BASE_URL}/api/device/command?${query}`, {
+    method: "POST"
+  });
+  if (!res.ok) throw new Error("Backend device command error");
+  return await res.json();
+}
+
 async function fetchTrends(lat, lon) {
   const fallback = buildFallbackTrends(lat, lon);
   try {

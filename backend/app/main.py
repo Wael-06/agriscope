@@ -1,7 +1,7 @@
 # pyright: reportMissingImports=false
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import regions, recommendation, trends
+from app.api import regions, recommendation, telemetry, trends
 
 app = FastAPI(title="AgriScope API", version="0.1.0")
 
@@ -15,6 +15,7 @@ app.add_middleware(
 app.include_router(regions.router)
 app.include_router(recommendation.router)
 app.include_router(trends.router)
+app.include_router(telemetry.router)
 
 @app.get("/")
 def root():

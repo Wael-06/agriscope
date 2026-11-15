@@ -3,6 +3,7 @@ from app.schemas.contracts import RecommendationRequest, RecommendationResponse,
 from app.services.nasa_power import get_power_summary
 from app.services.modis import get_ndvi_summary
 from app.services.open_meteo import get_weather_forecast
+from app.services.telemetry_store import get_fresh_telemetry, set_command
 from app.engine.irrigation import compute_irrigation
 from app.engine.rotation import recommend_rotations, score_baseline_rotation
 from app.engine.yield_estimation import estimate_yield
@@ -42,7 +43,11 @@ def _fallback_soil_moisture(soil_texture: str | None,
     )
 
 
-@router.post("/recommendation", response_model=RecommendationResponse)
+@router.post(
+    "/recommendation",
+    response_model=RecommendationResponse,
+    response_model_exclude_unset=True,
+)
 def create_recommendation(req: RecommendationRequest):
     month = int(req.planting_date[5:7])
     source_note = ""
@@ -97,6 +102,18 @@ def create_recommendation(req: RecommendationRequest):
             soil_moisture_top=soil_moisture_top,
         )
 
+    sensor_note = ""
+    satellite_soil_moisture_top = None
+    if req.use_live_sensor and req.device_id:
+        fresh = get_fresh_telemetry(req.device_id, max_age_seconds=900)
+        satellite_soil_moisture_top = env["soil_moisture_top"]
+        if fresh:
+            env["soil_moisture_top"] = fresh.soil_moisture_top
+            env["avg_temp_c"] = fresh.temp_c
+            sensor_note = " Calibrated with live field sensor."
+            if fresh.soil_moisture_top < 0.25:
+                set_command(req.device_id, irrigate=True, duration_sec=5, auto=True)
+
     feature_kwargs = dict(
         lat=req.lat,
         lon=req.lon,
@@ -127,7 +144,12 @@ def create_recommendation(req: RecommendationRequest):
         fallback_sources=fallback_sources,
         yield_estimate_kg_ha=yield_kg,
         confidence=confidence,
-        notes=(y_note + source_note).strip(),
+        notes=(y_note + source_note + sensor_note).strip(),
         soil_texture=features.soil_texture,
         irrigation_availability=features.irrigation_availability,
+        **(
+            {"satellite_soil_moisture_top": satellite_soil_moisture_top}
+            if satellite_soil_moisture_top is not None
+            else {}
+        ),
     )

@@ -270,6 +270,7 @@
           <div class="section-title-row">
             <h2>Earth Intelligence View (NASA POWER, MODIS NDVI & 7-Day Forecast)</h2>
           </div>
+          <p class="sensor-caption">Time series below follow the selected map pin. The vulnerability view covers up to 365 daily observations; the climate chart shows the latest 30 days, NDVI the latest 60 days, and the forecast the next 7 days.</p>
           <p id="trends-fallback-note" class="advisory-note hidden"></p>
           <div class="charts-grid">
             <div class="chart-card">
@@ -284,7 +285,55 @@
               <h4>7-Day Weather Forecast (Open-Meteo)</h4>
               <canvas id="forecastChart"></canvas>
             </div>
+            <div class="chart-card chart-card-vulnerability">
+              <h4>365-Day Vulnerability Signal — click a day to inspect it on the map</h4>
+              <p id="vulnerability-chart-status" class="chart-empty-state hidden" role="status"></p>
+              <canvas id="vulnerabilityTrendChart"></canvas>
+            </div>
           </div>
+          <section class="map-explorer-card" aria-labelledby="map-explorer-title">
+            <div class="map-explorer-header">
+              <div>
+                <h2 id="map-explorer-title">Vulnerability & trend map</h2>
+                <p>Scrub up to 365 daily observations for the selected point. Click a chart point or move the timeline to update the map and compare locations with data for that date.</p>
+              </div>
+              <span id="historical-map-layer-label" class="map-date-badge">Root-zone wetness</span>
+            </div>
+            <div class="map-explorer-controls">
+              <div class="map-metric-control">
+                <label for="historical-map-metric">Map layer</label>
+                <select id="historical-map-metric">
+                  <option value="water_stress">Low root-zone wetness (&lt;0.30)</option>
+                  <option value="heat">Hot days (daily maximum ≥35°C)</option>
+                  <option value="frost">Frost exposure (daily minimum ≤0°C)</option>
+                </select>
+              </div>
+              <div class="map-timeline-control">
+                <label for="historical-map-date">Observation date <output id="historical-map-date-label">Loading…</output></label>
+                <input id="historical-map-date" type="range" min="0" max="364" step="1" value="364" aria-label="Select a day in the latest year of daily observations" />
+              </div>
+            </div>
+            <p id="historical-map-status" class="map-data-status" role="status">Loading recent daily observations…</p>
+            <div class="selected-screening">
+              <div class="selected-screening-reading">
+                <span>Selected location</span>
+                <strong id="selected-screening-location">Loading…</strong>
+                <small><span id="selected-screening-metric">Root-zone wetness index</span>: <span id="selected-screening-reading">Loading…</span></small>
+              </div>
+              <div><span>Root-zone wetness change (period)</span><strong id="selected-screening-wetness-trend">—</strong></div>
+              <div><span>Hot days in period (≥35°C)</span><strong id="selected-screening-heat-days">—</strong></div>
+              <div><span>Frost days in period (≤0°C)</span><strong id="selected-screening-frost-days">—</strong></div>
+            </div>
+            <p class="map-data-limitation">
+              These are regional point samples, not field-boundary or within-field measurements. Nearby comparison points may only have recent observations.
+              Root-zone wetness is an index, not reservoir or groundwater storage. Erosion risk needs slope/soil data that this app does not have.
+            </p>
+            <div class="map-screening-legend" aria-label="Map screening legend">
+              <span><i class="risk-swatch risk-alert"></i>Threshold crossed</span>
+              <span><i class="risk-swatch risk-clear"></i>Threshold not crossed</span>
+              <span><i class="risk-swatch risk-unavailable"></i>Data unavailable</span>
+            </div>
+          </section>
         </section>
       </div>
     </section>

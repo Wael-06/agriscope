@@ -101,10 +101,12 @@ async function postDeviceCommand(deviceId, irrigate, durationSec = 5) {
   return await res.json();
 }
 
-async function fetchTrends(lat, lon) {
+async function fetchTrends(lat, lon, historyDays = 30) {
   const fallback = buildFallbackTrends(lat, lon);
   try {
-    const res = await fetch(`${API_BASE_URL}/trends?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`);
+    const res = await fetch(
+      `${API_BASE_URL}/trends?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&history_days=${encodeURIComponent(historyDays)}`
+    );
     if (!res.ok) throw new Error("Backend /trends error");
     const data = await res.json();
     setApiStatus(true);

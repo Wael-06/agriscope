@@ -1,6 +1,8 @@
 let climateChartInstance = null;
 let ndviChartInstance = null;
 let forecastChartInstance = null;
+let vulnerabilityTrendChartInstance = null;
+let currentEarthTrends = null;
 let priorityUpdateTimer = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -180,7 +182,7 @@ async function runFullAnalysis() {
     const payload = collectFormPayload();
     const recResult = await postRecommendation(payload);
     const [trendsData, sensorStatus] = await Promise.all([
-      fetchTrends(payload.lat, payload.lon),
+      fetchTrends(payload.lat, payload.lon, 365),
       payload.use_live_sensor
         ? fetchTelemetryStatus(payload.device_id)
         : Promise.resolve(null)
@@ -188,6 +190,7 @@ async function runFullAnalysis() {
 
     renderRecommendationDashboard(recResult.data, payload, recResult.isLive);
     renderEarthIntelligenceCharts(trendsData);
+    setHistoricalMapData(payload.lat, payload.lon, trendsData);
     if (sensorStatus) renderSensorStatus(recResult.data, sensorStatus);
   } catch (err) {
     errorEl.textContent = `Unable to render analysis: ${err.message}`;
@@ -298,6 +301,7 @@ function renderRotationBaseline(score, previousCrop, currentCrop, isLive) {
 }
 
 function renderEarthIntelligenceCharts(trends) {
+  currentEarthTrends = trends;
   const fallbackNote = document.getElementById("trends-fallback-note");
   const sources = trends.fallback_sources || [];
   fallbackNote.textContent = trends.offline
@@ -314,16 +318,22 @@ function renderEarthIntelligenceCharts(trends) {
   if (climateChartInstance) climateChartInstance.destroy();
   if (ndviChartInstance) ndviChartInstance.destroy();
   if (forecastChartInstance) forecastChartInstance.destroy();
+  if (vulnerabilityTrendChartInstance) vulnerabilityTrendChartInstance.destroy();
 
+  const recentClimate = {
+    dates: trends.climate_history.dates.slice(-30),
+    temp_c: trends.climate_history.temp_c.slice(-30),
+    precip_mm: trends.climate_history.precip_mm.slice(-30)
+  };
   climateChartInstance = new Chart(climateCtx, {
     type: "bar",
     data: {
-      labels: trends.climate_history.dates,
+      labels: recentClimate.dates,
       datasets: [
         {
           type: "line",
           label: "Temp (°C)",
-          data: trends.climate_history.temp_c,
+          data: recentClimate.temp_c,
           borderColor: "#dc2626",
           backgroundColor: "#dc2626",
           yAxisID: "yTemp",
@@ -332,7 +342,7 @@ function renderEarthIntelligenceCharts(trends) {
         {
           type: "bar",
           label: "Precip (mm)",
-          data: trends.climate_history.precip_mm,
+          data: recentClimate.precip_mm,
           backgroundColor: "#0284c7",
           yAxisID: "yPrecip"
         }
@@ -401,4 +411,139 @@ function renderEarthIntelligenceCharts(trends) {
       }
     }
   });
+
+  const vulnerabilityCtx = document.getElementById("vulnerabilityTrendChart").getContext("2d");
+  vulnerabilityTrendChartInstance = new Chart(vulnerabilityCtx, {
+    type: "line",
+    data: { labels: [], datasets: [] },
+    options: {
+      responsive: true,
+      interaction: { mode: "index", intersect: false },
+      onClick: (event) => {
+        const chart = vulnerabilityTrendChartInstance;
+        const area = chart.chartArea;
+        if (event.x < area.left || event.x > area.right || event.y < area.top || event.y > area.bottom) return;
+        let index = Math.round(chart.scales.x.getValueForPixel(event.x));
+        const values = chart.data.datasets[0]?.data || [];
+        if (!Number.isFinite(values[index])) {
+          index = values.reduce((nearest, value, candidate) =>
+            Number.isFinite(value) &&
+            (!Number.isFinite(values[nearest]) || Math.abs(candidate - index) < Math.abs(nearest - index))
+              ? candidate
+              : nearest, -1
+          );
+        }
+        if (index < 0) return;
+        const slider = document.getElementById("historical-map-date");
+        slider.value = String(index);
+        slider.dispatchEvent(new Event("input", { bubbles: true }));
+      },
+      scales: {
+        y: { title: { display: true, text: "" } }
+      },
+      plugins: {
+        legend: { display: false },
+        thresholdLine: { value: null, label: "" }
+      }
+    },
+    plugins: [{
+      id: "thresholdLine",
+      afterDraw(chart, _args, options) {
+        if (!Number.isFinite(options.value)) return;
+        const y = chart.scales.y.getPixelForValue(options.value);
+        if (y < chart.chartArea.top || y > chart.chartArea.bottom) return;
+        const { ctx, chartArea } = chart;
+        ctx.save();
+        ctx.strokeStyle = "#dc2626";
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.moveTo(chartArea.left, y);
+        ctx.lineTo(chartArea.right, y);
+        ctx.stroke();
+        ctx.fillStyle = "#b91c1c";
+        ctx.font = "12px system-ui";
+        ctx.fillText(options.label, chartArea.left + 6, y - 6);
+        ctx.restore();
+      }
+    }]
+  });
+  updateVulnerabilityTrendSelection(
+    document.getElementById("historical-map-metric").value,
+    Number(document.getElementById("historical-map-date").value)
+  );
+}
+
+function updateVulnerabilityTrendSelection(metric, selectedIndex) {
+  if (!vulnerabilityTrendChartInstance) return;
+  const trends = currentEarthTrends;
+  const climate = trends?.climate_history;
+  const dates = Array.isArray(climate?.dates) ? climate.dates : [];
+  const seriesByMetric = {
+    water_stress: {
+      key: "soil_moisture",
+      label: "NASA POWER root-zone wetness index",
+      color: "#0284c7",
+      threshold: 0.30,
+      thresholdLabel: "Low-wetness screening threshold (0.30)",
+      min: 0,
+      max: 1
+    },
+    heat: {
+      key: "temp_max_c",
+      label: "NASA POWER daily maximum temperature (°C)",
+      color: "#ea580c",
+      threshold: 35,
+      thresholdLabel: "Heat screening threshold (35°C)"
+    },
+    frost: {
+      key: "temp_min_c",
+      label: "NASA POWER daily minimum temperature (°C)",
+      color: "#2563eb",
+      threshold: 0,
+      thresholdLabel: "Frost screening threshold (0°C)"
+    }
+  };
+  const config = seriesByMetric[metric] || seriesByMetric.water_stress;
+  const sourceAvailable = !trends?.offline && !(trends?.fallback_sources || []).includes("NASA POWER");
+  const values = sourceAvailable && Array.isArray(climate?.[config.key])
+    ? climate[config.key]
+    : [];
+  const data = dates.map((_date, index) => Number.isFinite(values[index]) ? values[index] : null);
+  const availableCount = data.filter(Number.isFinite).length;
+  const chartStatus = document.getElementById("vulnerability-chart-status");
+  chartStatus.textContent = availableCount
+    ? ""
+    : trends?.offline || (trends?.fallback_sources || []).includes("NASA POWER")
+      ? "NASA POWER daily data is unavailable. Check the backend connection; fallback demo values are intentionally not plotted as observations."
+      : `This /trends response contains no daily ${config.label.toLowerCase()} series. Restart the backend after updating it to include T2M_MAX, T2M_MIN, and GWETROOT.`;
+  chartStatus.classList.toggle("hidden", availableCount > 0);
+
+  const colorAt = (value) => {
+    if (!Number.isFinite(value)) return "#94a3b8";
+    if (metric === "water_stress") return value < config.threshold ? "#dc2626" : config.color;
+    if (metric === "heat") return value >= config.threshold ? "#dc2626" : config.color;
+    return value <= config.threshold ? "#dc2626" : config.color;
+  };
+
+  vulnerabilityTrendChartInstance.data.labels = dates;
+  vulnerabilityTrendChartInstance.data.datasets = [{
+    label: config.label,
+    data,
+    borderColor: config.color,
+    backgroundColor: `${config.color}22`,
+    pointBackgroundColor: data.map(colorAt),
+    pointRadius: data.map((_value, index) => index === selectedIndex ? 6 : 3),
+    pointHoverRadius: 7,
+    fill: true,
+    tension: 0.2,
+    spanGaps: false
+  }];
+  vulnerabilityTrendChartInstance.options.scales.y.title.text = config.label;
+  if (Number.isFinite(config.min)) vulnerabilityTrendChartInstance.options.scales.y.min = config.min;
+  else delete vulnerabilityTrendChartInstance.options.scales.y.min;
+  if (Number.isFinite(config.max)) vulnerabilityTrendChartInstance.options.scales.y.max = config.max;
+  else delete vulnerabilityTrendChartInstance.options.scales.y.max;
+  vulnerabilityTrendChartInstance.options.plugins.thresholdLine.value = config.threshold;
+  vulnerabilityTrendChartInstance.options.plugins.thresholdLine.label = config.thresholdLabel;
+  vulnerabilityTrendChartInstance.update("none");
 }

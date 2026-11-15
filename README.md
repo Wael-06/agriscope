@@ -12,13 +12,13 @@
 
 <br/>
 
-<a href="https://drive.google.com/file/d/1W-VO1KBmknLpdGlZRHO2HNRJDL1twWSp/view">
+<a href="https://drive.google.com/file/d/1bJfZkpM0OVLQhhUeme2ai6GFJFtSE6ja/view">
   <img src="docs/demo-thumbnail.png" alt="Watch the AgriScope video demo" width="100%" />
 </a>
 
 **Explore climate vulnerability. Plan irrigation. Compare crop rotations. Get AI-powered field advice.**
 
-[Live Application](https://63.183.126.138.nip.io/) · [Watch Project Demo](https://drive.google.com/file/d/1W-VO1KBmknLpdGlZRHO2HNRJDL1twWSp/view) · [Project Documentation](#agriscope)
+[Live Application](https://63.183.126.138.nip.io/) · [Watch Project Demo](https://drive.google.com/file/d/1bJfZkpM0OVLQhhUeme2ai6GFJFtSE6ja/view) · [Project Documentation](https://drive.google.com/file/d/1nnx9ViMEwC5waxOH6AgDSXNfs7rWhNn7/view)
 
 </div>
 

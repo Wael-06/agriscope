@@ -10,7 +10,7 @@ Try the deployed application and explore its climate-risk maps, irrigation recom
 
 ## Project Demonstration
 
-[![Watch AgriScope Demo](docs/images/demo-thumbnail.png)]([DEMO_VIDEO_URL](https://drive.google.com/file/d/1r-ZWgFY3-dbDP6Z7n2IBrJ7dHGS5z9Fu/view?usp=drive_link))
+[![Watch AgriScope Demo](docs/demo-thumbnail.png)](https://drive.google.com/file/d/1r-ZWgFY3-dbDP6Z7n2IBrJ7dHGS5z9Fu/view)
 
 **AgriScope** is a climate-aware agricultural decision-support platform that helps farmers and agronomists understand environmental stress, estimate irrigation requirements, and compare crop-rotation strategies.
 
@@ -19,7 +19,7 @@ By combining NASA Earth data, weather forecasts, crop characteristics, soil info
 Built for the **NASA Space Apps Challenge 2026 — Field Shift: Adapting Farms with NASA Data**.
 
 <!-- Add docs/images/dashboard-overview.png before publishing this image reference. -->
-![AgriScope dashboard overview](docs/images/dashboard-overview.png)
+![AgriScope dashboard overview](docs/dashboard-overview.png)
 
 ---
 
@@ -70,8 +70,7 @@ Users can inspect:
 
 The map includes a timeline that allows users to inspect individual dates and compare available regional observations.
 
-<!-- Add docs/images/vulnerability-map.png before publishing. -->
-![AgriScope vulnerability and trend map](docs/images/vulnerability-map.png)
+![AgriScope vulnerability and trend map](docs/vulnerability-map.png)
 
 This helps users identify environmental stress signals and understand the conditions surrounding their agricultural decisions.
 
@@ -92,7 +91,7 @@ The system estimates weekly irrigation requirements and provides a suggested nex
 Rather than treating rainfall as guaranteed water supply, the advisor incorporates forecast precipitation into its water-requirement estimate.
 
 <!-- Add docs/images/irrigation-advisor.png before publishing. -->
-![AgriScope irrigation advisor](docs/images/irrigation-advisor.png)
+![AgriScope irrigation advisor](docs/irrigation-advisor.png)
 
 ### 3. Compare sustainable crop-rotation strategies
 
@@ -118,7 +117,7 @@ Diversifying crop families can help break some pest and disease cycles, while le
 The system ranks the strongest candidate sequences and provides explanations for their scores.
 
 <!-- Add docs/images/crop-rotation.png before publishing. -->
-![AgriScope crop rotation comparison](docs/images/crop-rotation.png)
+![AgriScope crop rotation comparison](docs/crop-rotation.png)
 
 ### 4. Estimate yield with confidence information
 
@@ -144,8 +143,6 @@ AgriScope combines environmental data from multiple services.
 | [MODIS MOD13Q1](https://modis.ornl.gov/) | NDVI vegetation index | Vegetation-condition indicators and recent trends |
 | [Open-Meteo](https://open-meteo.com/) | Seven-day weather forecast and FAO reference evapotranspiration | Short-term weather and irrigation planning |
 | [FAOSTAT](https://faostatservices.fao.org/api/) | UN Food and Agriculture Organization for programmatic access to its food and agriculture statistics database, covering 180+ countries from 1961 to present | Data use to train ML model |
-| Agricultural reference datasets | Crop characteristics, crop calendars, water requirements, and rotation rules | Crop suitability and rotation evaluation |
-| FAOSTAT-derived country benchmarks | Historical national crop-yield statistics | Regional yield baselines |
 
 The application uses caching and fallback behavior to remain usable when external data services are unavailable.
 
@@ -271,6 +268,13 @@ agriscope/
 │           ├── crop_characteristics.csv
 │           ├── regions.json
 │           └── rotation_rules.csv
+docs/
+├── crop-rotation.png
+├── dashboard-overview.png
+├── demo-thumbnail.png
+├── irrigation-advisor.png
+└── vulnerability-map.png
+|
 └── frontend/
     ├── index.html
     ├── css/

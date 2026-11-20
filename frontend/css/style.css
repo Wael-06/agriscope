@@ -1,6 +1,6 @@
 /* ==========================================================================
    AgriScope — Multi-Page Professional Agritech & Geospatial Design System
-   Supports Light (default) & Dark Geospatial themes via [data-theme="dark"]
+   Supports Light (default) & Dark UI themes via [data-theme="dark"]
    ========================================================================== */
 
 :root {
@@ -125,7 +125,6 @@ a { color: inherit; text-decoration: none; }
 
 /* ==========================================================================
    FULL-SCREEN 3D EARTH LANDING PAGE (index.html)
-   Minimal, cinematic Earth view inspired by the original landing page
    ========================================================================== */
 body.landing-body {
   background: radial-gradient(circle at 50% 42%, #0b2a33 0%, #041319 100%);
@@ -687,7 +686,7 @@ textarea.form-control { resize: vertical; line-height: 1.5; }
 
 .geo-map-canvas {
   width: 100%;
-  height: 540px;
+  height: 520px;
   position: relative;
   z-index: 1;
 }
@@ -699,7 +698,6 @@ textarea.form-control { resize: vertical; line-height: 1.5; }
   height: 460px;
 }
 
-/* Top Floating Glassmorphic Controls on Maps */
 .map-hud-top {
   position: absolute;
   top: 12px;
@@ -755,7 +753,7 @@ textarea.form-control { resize: vertical; line-height: 1.5; }
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
 }
 .basemap-btn {
-  padding: 0.3rem 0.68rem;
+  padding: 0.3rem 0.72rem;
   font-size: 0.76rem;
   font-weight: 600;
   color: var(--glass-muted);
@@ -794,68 +792,43 @@ textarea.form-control { resize: vertical; line-height: 1.5; }
   border-color: rgba(74, 222, 128, 0.5);
 }
 
-/* Bottom Floating Timeline HUD on map.html */
-.map-hud-bottom {
-  position: absolute;
-  bottom: 14px;
-  left: 14px;
-  right: 14px;
-  z-index: 500;
-  padding: 0.9rem 1.15rem;
-  background: rgba(8, 22, 27, 0.84);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: var(--r-lg);
-  color: #eef6f4;
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.42);
-}
-.map-hud-bottom-grid {
-  display: grid;
-  grid-template-columns: minmax(210px, 0.8fr) minmax(240px, 1.5fr) auto;
-  gap: 0.9rem 1.15rem;
-  align-items: end;
-}
-.map-hud-bottom label {
+/* Compact Layer & Legend Bar beneath map.html */
+.map-layer-bar {
+  padding: 0.85rem 1.2rem;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  font-size: 0.77rem;
-  font-weight: 600;
-  color: #b7d0ca;
-  margin-bottom: 0.32rem;
+  flex-wrap: wrap;
+  gap: 0.85rem 1.25rem;
 }
-.map-hud-bottom select {
-  width: 100%;
+.map-layer-control {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+.map-layer-control label {
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: var(--ink-secondary);
+  white-space: nowrap;
+}
+.map-layer-control select {
+  min-width: 240px;
   min-height: 2.25rem;
-  padding: 0.35rem 0.65rem;
-  font-size: 0.84rem;
-  color: #f4faf8;
-  background: rgba(255, 255, 255, 0.09);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.35rem 0.7rem;
+  font-size: 0.86rem;
+  color: var(--ink);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-strong);
   border-radius: var(--r-sm);
 }
-.map-hud-bottom select option { background: #0f2421; color: #f4faf8; }
-.map-hud-bottom input[type="range"] {
-  width: 100%;
-  accent-color: var(--accent-gold-bright);
-  cursor: pointer;
-}
-.map-hud-bottom-meta {
-  margin-top: 0.65rem;
-  padding-top: 0.6rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem 1rem;
-  font-size: 0.78rem;
-  color: #b7d0ca;
-}
 
-.legend-row { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; }
+.legend-row { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; font-size: 0.8rem; color: var(--muted); }
 .legend-item { display: inline-flex; align-items: center; gap: 0.38rem; }
-.risk-swatch { width: 10px; height: 10px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.45); }
+.risk-swatch { width: 10px; height: 10px; border-radius: 50%; border: 1px solid rgba(0, 0, 0, 0.22); }
 .risk-alert { background: #ef4444; }
 .risk-clear { background: #22c55e; }
 .risk-unavailable { background: #94a3b8; }
@@ -890,7 +863,6 @@ textarea.form-control { resize: vertical; line-height: 1.5; }
   100% { transform: scale(2.15); opacity: 0; }
 }
 
-/* Styled Leaflet Controls & Tooltips */
 .leaflet-container { font-family: var(--font-body); background: #0b1c22; }
 .leaflet-control-zoom {
   border: 1px solid var(--glass-border) !important;
@@ -939,7 +911,6 @@ textarea.form-control { resize: vertical; line-height: 1.5; }
   overflow-y: auto;
 }
 .panel-divider { border: none; border-top: 1px solid var(--border); margin: 1.1rem 0; }
-
 .planner-map-wrapper { margin-bottom: 1.25rem; }
 
 .kpi-strip {
@@ -1255,8 +1226,6 @@ input[type="range"] { width: 100%; accent-color: var(--brand); cursor: pointer; 
   .advisor-layout,
   .telemetry-grid { grid-template-columns: 1fr; }
   .sticky-panel { position: static; max-height: none; overflow: visible; }
-  .map-hud-bottom { position: static; border-radius: 0; border-left: none; border-right: none; border-bottom: none; }
-  .map-hud-bottom-grid { grid-template-columns: 1fr; }
   .screening-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
@@ -1277,4 +1246,5 @@ input[type="range"] { width: 100%; accent-color: var(--brand); cursor: pointer; 
   .metric-pair { grid-template-columns: 1fr; }
   .geo-map-canvas { height: 370px; }
   .geo-map-canvas.compact { height: 240px; }
+  .map-layer-control select { min-width: 0; width: 100%; }
 }

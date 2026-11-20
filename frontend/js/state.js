@@ -1,6 +1,6 @@
 const STORAGE_KEY = "agriscope_field_state_v2";
 const THEME_KEY = "agriscope_theme_v2";
-const BASEMAP_KEY = "agriscope_basemap_v3";
+const BASEMAP_KEY = "agriscope_basemap_v4";
 
 const DEFAULT_FIELD_STATE = {
   regionId: "nile_delta",
@@ -131,11 +131,13 @@ function toggleTheme() {
 }
 
 function getPreferredBasemap() {
-  return localStorage.getItem(BASEMAP_KEY) || "satellite";
+  const saved = localStorage.getItem(BASEMAP_KEY);
+  return saved === "terrain" ? "terrain" : "satellite";
 }
 
 function setPreferredBasemap(style) {
-  localStorage.setItem(BASEMAP_KEY, style);
+  const safeStyle = style === "terrain" ? "terrain" : "satellite";
+  localStorage.setItem(BASEMAP_KEY, safeStyle);
 }
 
 applyTheme(getTheme());

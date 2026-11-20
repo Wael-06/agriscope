@@ -3,7 +3,6 @@ let ndviChartInstance = null;
 let forecastChartInstance = null;
 let vulnerabilityTrendChartInstance = null;
 let currentEarthTrends = null;
-let playbackInterval = null;
 
 function applyChartDefaults() {
   if (typeof Chart === "undefined") return;
@@ -28,7 +27,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       lat: coords.lat,
       lon: coords.lon
     });
-    document.querySelectorAll("#map-region-chips .preset-btn").forEach((b) => b.classList.remove("active"));
+    const regSel = document.getElementById("map-region-select"); if (regSel) regSel.value = "";
     loadMapTrends(coords.lat, coords.lon);
   });
 
@@ -37,8 +36,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     applyRegionToState(reg);
     loadMapTrends(reg.lat, reg.lon);
   });
-
-  document.getElementById("play-timeline-btn").addEventListener("click", toggleTimelinePlayback);
 
   window.addEventListener("agriscope:themechange", () => {
     applyChartDefaults();
@@ -49,32 +46,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   setMapMarker(s.lat, s.lon, null, false);
   await loadMapTrends(s.lat, s.lon);
 });
-
-function toggleTimelinePlayback() {
-  const btn = document.getElementById("play-timeline-btn");
-  const slider = document.getElementById("historical-map-date");
-  if (playbackInterval) {
-    clearInterval(playbackInterval);
-    playbackInterval = null;
-    btn.textContent = "Play";
-    return;
-  }
-  const max = Number(slider.max) || 0;
-  if (max <= 0) return;
-  if (Number(slider.value) >= max) slider.value = "0";
-  btn.textContent = "Pause";
-  playbackInterval = setInterval(() => {
-    const next = Number(slider.value) + 1;
-    if (next > max) {
-      clearInterval(playbackInterval);
-      playbackInterval = null;
-      btn.textContent = "Play";
-      return;
-    }
-    slider.value = String(next);
-    slider.dispatchEvent(new Event("input", { bubbles: true }));
-  }, 150);
-}
 
 async function loadMapTrends(lat, lon) {
   const loading = document.getElementById("map-loading");
@@ -170,9 +141,9 @@ function renderEarthIntelligenceCharts(trends) {
         const index = Math.round(chart.scales.x.getValueForPixel(event.x));
         const values = chart.data.datasets[0]?.data || [];
         if (!Number.isFinite(values[index])) return;
-        const slider = document.getElementById("historical-map-date");
-        slider.value = String(index);
-        slider.dispatchEvent(new Event("input", { bubbles: true }));
+        if (typeof setSelectedHistoryIndex === "function") {
+          setSelectedHistoryIndex(index);
+        }
       },
       scales: { y: { title: { display: true, text: "" } } },
       plugins: { legend: { display: false }, thresholdLine: { value: null, label: "" } }
@@ -201,7 +172,7 @@ function renderEarthIntelligenceCharts(trends) {
 
   updateVulnerabilityTrendSelection(
     document.getElementById("historical-map-metric").value,
-    Number(document.getElementById("historical-map-date").value)
+    typeof selectedHistoryIndex === "number" ? selectedHistoryIndex : 0
   );
 }
 

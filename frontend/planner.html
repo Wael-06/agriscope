@@ -6,7 +6,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Noto+Sans+Arabic:wght@400;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/style.css?v=7" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <title>Field Planner — AgriScope</title>
 </head>
@@ -29,7 +29,12 @@
     <div class="workspace-split">
       <aside class="card sticky-panel">
         <h2 class="card-title" style="margin-bottom:0.65rem;">1. Select Region</h2>
-        <div id="planner-region-presets" class="region-list-scroll" style="max-height:210px;"></div>
+        <div class="form-group">
+          <label for="planner-region-select">Choose agricultural region</label>
+          <select id="planner-region-select" class="form-control region-select" aria-label="Select agricultural region">
+            <option value="">Loading regions…</option>
+          </select>
+        </div>
 
         <hr class="panel-divider" />
 
@@ -100,7 +105,6 @@
       </aside>
 
       <section>
-        <!-- Enhanced Interactive Satellite Field Map -->
         <div class="planner-map-wrapper">
           <div class="geo-map-shell">
             <div class="map-hud-top">
@@ -112,8 +116,6 @@
                 <div id="planner-basemap-switcher" class="basemap-switcher" role="group" aria-label="Basemap style">
                   <button type="button" class="basemap-btn active" data-basemap="satellite">Satellite</button>
                   <button type="button" class="basemap-btn" data-basemap="terrain">Terrain</button>
-                  <button type="button" class="basemap-btn" data-basemap="light">Light</button>
-                  <button type="button" class="basemap-btn" data-basemap="dark">Dark</button>
                 </div>
                 <button type="button" id="expand-planner-map-btn" class="map-icon-btn">Expand</button>
               </div>
@@ -235,10 +237,10 @@
   <div id="app-footer-mount"></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="js/api.js"></script>
-  <script src="js/state.js"></script>
-  <script src="js/layout.js"></script>
-  <script src="js/map-utils.js"></script>
-  <script src="js/planner.js"></script>
+  <script src="js/api.js?v=7"></script>
+  <script src="js/state.js?v=7"></script>
+  <script src="js/layout.js?v=7"></script>
+  <script src="js/map-utils.js?v=7"></script>
+  <script src="js/planner.js?v=7"></script>
 </body>
 </html>

@@ -6,7 +6,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Noto+Sans+Arabic:wght@400;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/style.css?v=7" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <title>Vulnerability &amp; Climate Map — AgriScope</title>
 </head>
@@ -18,9 +18,14 @@
       <div>
         <span class="page-eyebrow">Earth Observation Explorer</span>
         <h1>Vulnerability &amp; Trend Map</h1>
-        <p>Switch between Satellite, Terrain, Light, and Dark basemaps. Click any point or region to scrub 365 days of NASA POWER wetness, heat, and frost signals.</p>
+        <p>Switch between Satellite and Terrain basemaps. Click any point or region to inspect NASA POWER wetness, heat, and frost signals alongside NDVI and forecast trends.</p>
       </div>
-      <div id="map-region-chips" class="region-chips"></div>
+      <div class="region-dropdown-wrap">
+        <label for="map-region-select" class="region-dropdown-label">Region</label>
+        <select id="map-region-select" class="form-control region-select" aria-label="Select agricultural region">
+          <option value="">Loading regions…</option>
+        </select>
+      </div>
     </div>
 
     <div id="map-loading" class="banner banner-info hidden">Loading NASA POWER, MODIS NDVI, and Open-Meteo time series…</div>
@@ -38,8 +43,6 @@
             <div id="vuln-basemap-switcher" class="basemap-switcher" role="group" aria-label="Basemap style">
               <button type="button" class="basemap-btn active" data-basemap="satellite">Satellite</button>
               <button type="button" class="basemap-btn" data-basemap="terrain">Terrain</button>
-              <button type="button" class="basemap-btn" data-basemap="light">Light</button>
-              <button type="button" class="basemap-btn" data-basemap="dark">Dark</button>
             </div>
             <button type="button" id="center-pin-btn" class="map-icon-btn">Center Pin</button>
             <button type="button" id="fit-regions-btn" class="map-icon-btn">All Regions</button>
@@ -49,37 +52,20 @@
 
         <div id="map" class="geo-map-canvas"></div>
 
-        <div class="map-hud-bottom">
-          <div class="map-hud-bottom-grid">
-            <div>
-              <label for="historical-map-metric">Vulnerability Layer</label>
-              <select id="historical-map-metric">
-                <option value="water_stress">Low root-zone wetness (&lt;0.30)</option>
-                <option value="heat">Hot days (daily max ≥35°C)</option>
-                <option value="frost">Frost exposure (daily min ≤0°C)</option>
-              </select>
-            </div>
-
-            <div>
-              <label for="historical-map-date">
-                <span>Observation Timeline (365d)</span>
-                <output id="historical-map-date-label" style="color:#e8c15a; font-variant-numeric:tabular-nums;">Loading…</output>
-              </label>
-              <input id="historical-map-date" type="range" min="0" max="364" step="1" value="364" />
-            </div>
-
-            <div>
-              <button type="button" id="play-timeline-btn" class="btn btn-primary btn-sm" style="min-width:92px;">Play</button>
-            </div>
+        <div class="map-layer-bar">
+          <div class="map-layer-control">
+            <label for="historical-map-metric">Vulnerability Layer</label>
+            <select id="historical-map-metric">
+              <option value="water_stress">Low root-zone wetness (&lt;0.30)</option>
+              <option value="heat">Hot days (daily max ≥35°C)</option>
+              <option value="frost">Frost exposure (daily min ≤0°C)</option>
+            </select>
           </div>
 
-          <div class="map-hud-bottom-meta">
-            <span id="historical-map-status" role="status">Loading daily observations…</span>
-            <div class="legend-row">
-              <span class="legend-item"><i class="risk-swatch risk-alert"></i>Threshold crossed</span>
-              <span class="legend-item"><i class="risk-swatch risk-clear"></i>Within normal range</span>
-              <span class="legend-item"><i class="risk-swatch risk-unavailable"></i>Data unavailable</span>
-            </div>
+          <div class="legend-row">
+            <span class="legend-item"><i class="risk-swatch risk-alert"></i>Threshold crossed</span>
+            <span class="legend-item"><i class="risk-swatch risk-clear"></i>Within normal range</span>
+            <span class="legend-item"><i class="risk-swatch risk-unavailable"></i>Data unavailable</span>
           </div>
         </div>
       </section>
@@ -109,7 +95,7 @@
 
       <section class="charts-grid">
         <div class="chart-box full-span">
-          <h3>Past Year Vulnerability Signal — Click any day to sync map</h3>
+          <h3>Past Year Vulnerability Signal — Click any day to inspect on the map</h3>
           <p id="vulnerability-chart-status" class="chart-empty hidden" role="status"></p>
           <canvas id="vulnerabilityTrendChart"></canvas>
         </div>
@@ -137,11 +123,11 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="js/api.js"></script>
-  <script src="js/state.js"></script>
-  <script src="js/layout.js"></script>
-  <script src="js/map-utils.js"></script>
-  <script src="js/map.js"></script>
-  <script src="js/map-page.js"></script>
+  <script src="js/api.js?v=7"></script>
+  <script src="js/state.js?v=7"></script>
+  <script src="js/layout.js?v=7"></script>
+  <script src="js/map-utils.js?v=7"></script>
+  <script src="js/map.js?v=7"></script>
+  <script src="js/map-page.js?v=7"></script>
 </body>
 </html>

@@ -44,7 +44,7 @@ function initPlannerMap(regions) {
     updatePlannerMapHud("Custom Field Pin", lat, lon);
     document.getElementById("lat").value = lat;
     document.getElementById("lon").value = lon;
-    document.querySelectorAll("#planner-region-presets .preset-btn").forEach((b) => b.classList.remove("active"));
+    const regSel = document.getElementById("planner-region-select"); if (regSel) regSel.value = "";
     readFormToState();
     runPlannerAnalysis();
   });
@@ -83,9 +83,8 @@ function populateCropDropdowns() {
 
 function selectPlannerRegion(reg) {
   const next = applyRegionToState(reg);
-  document.querySelectorAll("#planner-region-presets .preset-btn").forEach((b) => {
-    b.classList.toggle("active", b.dataset.regionId === reg.id);
-  });
+  const regSel = document.getElementById("planner-region-select");
+  if (regSel) regSel.value = reg.id;
   updateCropCoverage(reg);
   hydratePlannerForm(next);
   syncPlannerMapView(reg.lat, reg.lon, reg.name, true);
@@ -93,9 +92,14 @@ function selectPlannerRegion(reg) {
 }
 
 function renderPlannerRegions(regions) {
-  const container = document.getElementById("planner-region-presets");
-  container.innerHTML = "";
-  const activeId = getFieldState().regionId;
+  const select = document.getElementById("planner-region-select");
+  if (!select) return;
+  select.innerHTML = "";
+
+  const customOpt = document.createElement("option");
+  customOpt.value = "";
+  customOpt.textContent = "Custom location (map pin / coordinates)";
+  select.appendChild(customOpt);
 
   const grouped = regions.reduce((acc, r) => {
     const country = r.country || "EGYPT";
@@ -105,25 +109,23 @@ function renderPlannerRegions(regions) {
   const labels = { EGYPT: "Egypt", USA: "United States", CHINA: "China" };
 
   Object.entries(grouped).forEach(([country, list]) => {
-    const group = document.createElement("div");
-    const heading = document.createElement("div");
-    heading.className = "region-group-title";
-    heading.textContent = labels[country] || country;
-    group.appendChild(heading);
-
-    const chips = document.createElement("div");
-    chips.className = "region-chips";
+    const optgroup = document.createElement("optgroup");
+    optgroup.label = labels[country] || country;
     list.forEach((reg) => {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "preset-btn" + (reg.id === activeId ? " active" : "");
-      btn.dataset.regionId = reg.id;
-      btn.textContent = reg.name;
-      btn.addEventListener("click", () => selectPlannerRegion(reg));
-      chips.appendChild(btn);
+      const opt = document.createElement("option");
+      opt.value = reg.id;
+      opt.textContent = reg.name;
+      optgroup.appendChild(opt);
     });
-    group.appendChild(chips);
-    container.appendChild(group);
+    select.appendChild(optgroup);
+  });
+
+  const activeId = getFieldState().regionId || "";
+  select.value = regions.some((r) => r.id === activeId) ? activeId : "";
+
+  select.addEventListener("change", () => {
+    const picked = regions.find((r) => r.id === select.value);
+    if (picked) selectPlannerRegion(picked);
   });
 }
 
@@ -211,6 +213,8 @@ function bindPlannerEvents() {
     e.preventDefault();
     const s = readFormToState();
     syncPlannerMapView(s.lat, s.lon, s.regionName, true);
+    const regSel = document.getElementById("planner-region-select");
+    if (regSel) regSel.value = s.regionId || "";
     runPlannerAnalysis();
   });
 

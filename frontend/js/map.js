@@ -45,14 +45,15 @@ function initMap(onLocationSelected) {
     setTimeout(() => mapInstance.invalidateSize(), 180);
   });
 
-  document.getElementById("historical-map-date").addEventListener("input", (event) => {
-    selectedHistoryIndex = Number(event.target.value);
-    updateHistoricalMap();
-  });
   document.getElementById("historical-map-metric").addEventListener("change", (event) => {
     selectedHistoryMetric = event.target.value;
     updateHistoricalMap();
   });
+}
+
+function setSelectedHistoryIndex(index) {
+  selectedHistoryIndex = Number(index) || 0;
+  updateHistoricalMap();
 }
 
 function updateMapHudCoords(label, lat, lon) {
@@ -76,9 +77,48 @@ function setMapMarker(lat, lon, popupText = null, fly = true) {
 
 function renderMapRegions(regions, onRegionPicked) {
   loadedRegions = regions;
-  const container = document.getElementById("map-region-chips");
-  if (container) container.innerHTML = "";
-  const activeId = getFieldState().regionId;
+  const select = document.getElementById("map-region-select");
+  const activeId = getFieldState().regionId || "";
+
+  const pickRegion = (reg) => {
+    if (select) select.value = reg.id;
+    updateMapHudCoords(reg.name, reg.lat, reg.lon);
+    setMapMarker(reg.lat, reg.lon, `<strong>${reg.name}</strong>${reg.soil ? `<br/>Soil: ${reg.soil}` : ""}`, true);
+    onRegionPicked(reg);
+  };
+
+  if (select) {
+    select.innerHTML = "";
+    const customOpt = document.createElement("option");
+    customOpt.value = "";
+    customOpt.textContent = "Custom map pin";
+    select.appendChild(customOpt);
+
+    const grouped = regions.reduce((acc, r) => {
+      const country = r.country || "EGYPT";
+      (acc[country] ||= []).push(r);
+      return acc;
+    }, {});
+    const labels = { EGYPT: "Egypt", USA: "United States", CHINA: "China" };
+
+    Object.entries(grouped).forEach(([country, list]) => {
+      const optgroup = document.createElement("optgroup");
+      optgroup.label = labels[country] || country;
+      list.forEach((reg) => {
+        const opt = document.createElement("option");
+        opt.value = reg.id;
+        opt.textContent = reg.name;
+        optgroup.appendChild(opt);
+      });
+      select.appendChild(optgroup);
+    });
+
+    select.value = regions.some((r) => r.id === activeId) ? activeId : "";
+    select.addEventListener("change", () => {
+      const picked = regions.find((r) => r.id === select.value);
+      if (picked) pickRegion(picked);
+    });
+  }
 
   regions.forEach((reg) => {
     const country = reg.country || "EGYPT";
@@ -93,27 +133,7 @@ function renderMapRegions(regions, onRegionPicked) {
 
     circle.bindTooltip(createRegionTooltip(reg.name, "Click to load climate vulnerability history."));
     regionalTrendMarkers.set(reg.id, circle);
-
-    const pick = () => {
-      document.querySelectorAll("#map-region-chips .preset-btn").forEach((b) => {
-        b.classList.toggle("active", b.dataset.regionId === reg.id);
-      });
-      updateMapHudCoords(reg.name, reg.lat, reg.lon);
-      setMapMarker(reg.lat, reg.lon, `<strong>${reg.name}</strong>${reg.soil ? `<br/>Soil: ${reg.soil}` : ""}`, true);
-      onRegionPicked(reg);
-    };
-
-    circle.on("click", pick);
-
-    if (container) {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "preset-btn" + (reg.id === activeId ? " active" : "");
-      btn.dataset.regionId = reg.id;
-      btn.textContent = reg.name;
-      btn.addEventListener("click", pick);
-      container.appendChild(btn);
-    }
+    circle.on("click", () => pickRegion(reg));
   });
 }
 
@@ -183,28 +203,17 @@ function updateHistoricalMap() {
       (t) => !t.offline && !(t.fallback_sources || []).includes("NASA POWER")
     ));
 
-  const statusEl = document.getElementById("historical-map-status");
   if (!dates.length) {
-    statusEl.textContent = "Daily NASA POWER history unavailable — markers stay gray until live observations return.";
     for (const [, marker] of regionalTrendMarkers) marker.setStyle({ fillColor: "#94a3b8" });
     updateSelectedHistorySummary(null, selectedHistoryMetric);
+    if (typeof updateVulnerabilityTrendSelection === "function") {
+      updateVulnerabilityTrendSelection(selectedHistoryMetric, selectedHistoryIndex);
+    }
     return;
   }
 
-  const slider = document.getElementById("historical-map-date");
-  slider.max = String(dates.length - 1);
   selectedHistoryIndex = Math.max(0, Math.min(selectedHistoryIndex, dates.length - 1));
-  slider.value = String(selectedHistoryIndex);
   const selectedDate = dates[selectedHistoryIndex];
-
-  document.getElementById("historical-map-date-label").textContent = selectedDate;
-
-  const regionalDateCount = loadedRegions.filter((r) =>
-    getHistoryValue(regionalTrendData.get(r.id), selectedHistoryMetric, selectedDate) !== null
-  ).length;
-  statusEl.textContent = selectedHistoryAvailable
-    ? `Observation date ${selectedDate} · ${regionalDateCount} regional point(s) loaded.`
-    : "Selected point lacks this series; comparison markers reflect available regions.";
 
   for (const region of loadedRegions) {
     const marker = regionalTrendMarkers.get(region.id);

@@ -96,7 +96,7 @@ function initAppShell(activePageId, options = { showContextBar: true }) {
     footerMount.innerHTML = `
       <footer class="app-footer">
         <div class="footer-inner">
-          <span><strong>AgriScope</strong> — Turning NASA POWER, MODIS NDVI & Open-Meteo data into climate-resilient field decisions.</span>
+          <span><strong>AgriScope</strong> — Turning NASA POWER, MODIS NDVI &amp; Open-Meteo data into climate-resilient field decisions.</span>
           <span>Research prototype · Not an official NASA product or certified agronomic prescription.</span>
         </div>
       </footer>

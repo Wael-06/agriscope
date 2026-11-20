@@ -6,7 +6,7 @@
 
 **NASA Space Apps Challenge 2026 — Field Shift**
 
-<a href="https://63.183.126.138.nip.io/">
+<a href="https://63.183.126.138.nip.io/index.html">
   <img src="https://img.shields.io/badge/ OPEN_LIVE_DEMO-Launch_AgriScope-16a34a?style=for-the-badge&labelColor=14532d" alt="Open AgriScope Live Demo" />
 </a>
 
@@ -18,7 +18,7 @@
 
 **Explore climate vulnerability. Plan irrigation. Compare crop rotations. Get AI-powered field advice.**
 
-[Live Application](https://63.183.126.138.nip.io/) · [Watch Project Demo](https://drive.google.com/file/d/1bJfZkpM0OVLQhhUeme2ai6GFJFtSE6ja/view) · [Project Documentation](https://drive.google.com/file/d/1nnx9ViMEwC5waxOH6AgDSXNfs7rWhNn7/view)
+[Live Application](https://63.183.126.138.nip.io/index.html) · [Watch Project Demo](https://drive.google.com/file/d/1bJfZkpM0OVLQhhUeme2ai6GFJFtSE6ja/view) · [Project Documentation](https://drive.google.com/file/d/1nnx9ViMEwC5waxOH6AgDSXNfs7rWhNn7/view)
 
 </div>
 

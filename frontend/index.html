@@ -3,373 +3,49 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AgriScope — Adapting Farms with NASA Data</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Noto+Sans+Arabic:wght@400;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" />
   <link rel="stylesheet" href="css/style.css" />
+  <title>AgriScope — Adapting Farms with NASA Data</title>
 </head>
-<body>
-  <!-- 3D Globe.gl Landing Overlay -->
-  <div id="globe-overlay" class="globe-overlay">
+<body class="landing-body">
+  <div id="landing-stage" class="landing-stage">
+    <header class="landing-topbar">
+      <a href="index.html" class="landing-brand">
+        <svg class="brand-mark" viewBox="0 0 36 36" aria-hidden="true" style="width:28px;height:28px;">
+          <rect width="36" height="36" rx="10" fill="#156248" />
+          <circle cx="18" cy="14.5" r="5.5" fill="#f0b443" />
+          <path d="M5 27c4-5 8-7 13-7s9 2 13 7" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" />
+        </svg>
+        <span class="landing-brand-name">AgriScope</span>
+      </a>
+
+      <div class="landing-top-actions">
+        <a href="planner.html" class="landing-quick-link">Field Planner</a>
+        <a href="map.html" class="landing-quick-link">Vulnerability Map</a>
+        <a href="advisor.html" class="landing-quick-link">AI Advisor</a>
+        <div id="api-status" class="status-pill status-mock">Checking…</div>
+      </div>
+    </header>
+
     <div id="globe-container"></div>
+
     <div class="globe-hud">
       <span class="hud-tag">NASA Space Apps Challenge 2026</span>
       <h1>AgriScope</h1>
-      <p>Supporting farms with NASA POWER, MODIS NDVI & Open-Meteo Intelligence</p>
+      <p>Supporting climate-resilient farms with NASA POWER, MODIS NDVI &amp; Open-Meteo</p>
       <div class="hud-actions">
-        <button id="enter-dashboard-btn" class="hud-btn">Explore Agricultural Regions</button>
+        <button id="enter-planner-btn" type="button" class="hud-btn">Explore Agricultural Regions</button>
+        <button id="enter-map-btn" type="button" class="hud-btn-ghost">Open Vulnerability Map</button>
       </div>
-      <span class="hud-hint">Explore Egypt, USA, and China on the globe or use the region list</span>
+      <span class="hud-hint">Click any glowing region on Earth to zoom in and start analyzing</span>
     </div>
   </div>
 
-  <header class="app-header">
-    <div class="brand">
-      <h1>AgriScope</h1>
-      <span class="subtitle">NASA Space Apps — Farm Decision Support (Egypt, USA & China)</span>
-    </div>
-    <div class="header-right">
-      <button id="reopen-globe-btn" class="globe-toggle-btn" type="button">3D Globe View</button>
-      <div id="api-status" class="status-badge status-mock">Checking Backend...</div>
-    </div>
-  </header>
-
-  <main class="app-container">
-    <aside class="side-panel">
-      <section class="panel-section">
-        <h2>1. Select Country & Region or Click Map</h2>
-        <div id="region-presets" class="preset-buttons"></div>
-      </section>
-
-      <form id="farmer-form" class="panel-section">
-        <h2>2. Field & Crop Parameters</h2>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="lat">Latitude</label>
-            <input type="number" id="lat" step="0.0001" value="31.11" required />
-          </div>
-          <div class="form-group">
-            <label for="lon">Longitude</label>
-            <input type="number" id="lon" step="0.0001" value="30.94" required />
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="crop">Selected Crop</label>
-          <select id="crop" required>
-            <option value="wheat">Wheat (قمح)</option>
-            <option value="maize">Maize (ذرة)</option>
-            <option value="cotton">Cotton (قطن)</option>
-            <option value="tomato">Tomato (طماطم)</option>
-            <option value="sugarcane">Sugarcane (قصب السكر)</option>
-            <option value="date_palm">Date Palm (نخيل التمر)</option>
-            <option value="rice">Rice (أرز)</option>
-          </select>
-          <small id="crop-model-coverage" class="sensor-caption hidden"></small>
-        </div>
-
-        <div class="form-group">
-          <label for="previous_crop">What did you grow here last season? (optional)</label>
-          <select id="previous_crop">
-            <option value="">Skip comparison</option>
-          </select>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="field_size_ha">Field Size (ha)</label>
-            <input type="number" id="field_size_ha" step="0.1" min="0.1" value="2.5" required />
-          </div>
-          <div class="form-group">
-            <label for="planting_date">Planting Date</label>
-            <input type="date" id="planting_date" value="2026-11-15" required />
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="soil_texture">Soil Texture</label>
-            <select id="soil_texture">
-              <option value="clay">Alluvial / Silty Clay (طينية)</option>
-              <option value="loam">Sandy / Clay Loam (طميية)</option>
-              <option value="sandy">Sandy (رملية)</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="irrigation_availability">Irrigation Access</label>
-            <select id="irrigation_availability">
-              <option value="available">Available (متوفر)</option>
-              <option value="limited" selected>Limited (محدود)</option>
-              <option value="none">None / Rainfed (بعلي)</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="planning_horizon_seasons">Planning Horizon (Seasons)</label>
-          <input type="number" id="planning_horizon_seasons" min="1" max="6" value="3" required />
-        </div>
-
-        <div class="sensor-controls">
-          <label class="sensor-toggle" for="use-live-sensor">
-            <input type="checkbox" id="use-live-sensor" />
-            <span>I have a connected field sensor (ESP32)</span>
-          </label>
-          <div id="sensor-options" class="hidden">
-            <div class="form-group">
-              <label for="device-id">Device ID</label>
-              <input type="text" id="device-id" value="demo-esp32-01" />
-            </div>
-            <button type="button" id="irrigate-now-btn" class="secondary-btn">Irrigate Now</button>
-            <p id="sensor-command-status" class="sensor-caption" aria-live="polite"></p>
-          </div>
-        </div>
-
-        <button type="submit" id="submit-btn" class="primary-btn">
-          Analyze Field & Get Recommendations
-        </button>
-      </form>
-
-      <section class="panel-section advisor-section" aria-labelledby="advisor-title">
-        <h2 id="advisor-title">3. AI Field Advisor</h2>
-        <p class="sensor-caption">Get field-specific guidance based on your inputs and the latest environmental data.</p>
-        <div class="form-group">
-          <label for="advisor-language">Advice language</label>
-          <select id="advisor-language">
-            <option value="en">English</option>
-            <option value="ar">Arabic</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="advisor-question">Ask a question (optional)</label>
-          <textarea id="advisor-question" rows="3" maxlength="500" placeholder="For example: What should I check before irrigating?"></textarea>
-        </div>
-        <button type="button" id="advisor-btn" class="secondary-btn">Show AI Advice</button>
-        <div id="advisor-response" class="advisor-response hidden" aria-live="polite">
-          <p id="advisor-status" class="sensor-caption" role="status"></p>
-          <div id="advisor-facts" class="advisor-facts hidden" aria-label="Field data highlights"></div>
-          <div id="advisor-advice" class="advisor-advice hidden"></div>
-          <h3 id="advisor-sources-title" class="advisor-sources-title hidden">Sources</h3>
-          <ul id="advisor-sources" class="advisor-sources hidden"></ul>
-        </div>
-      </section>
-    </aside>
-
-    <section class="main-content">
-      <div class="map-card">
-        <div id="map"></div>
-      </div>
-
-      <div id="loading-state" class="state-banner hidden">
-        Fetching NASA POWER, MODIS NDVI & Open-Meteo data...
-      </div>
-      <div id="error-state" class="state-banner error-banner hidden"></div>
-      <section id="sensor-status-card" class="sensor-status-card hidden" aria-live="polite">
-        <div class="sensor-status-header">
-          <h3>Field Sensor Comparison</h3>
-          <span class="sensor-online-state">
-            <span id="sensor-online-dot" class="sensor-dot sensor-offline"></span>
-            <span id="sensor-online-label">Live Node Offline</span>
-          </span>
-        </div>
-        <div class="sensor-comparison">
-          <div><span>NASA Satellite Soil Moisture</span><strong id="satellite-soil-moisture">—</strong></div>
-          <div><span>Live ESP32 Ground Sensor</span><strong id="live-soil-moisture">—</strong></div>
-        </div>
-        <p id="sensor-last-seen" class="sensor-caption">No telemetry received yet</p>
-      </section>
-
-      <div id="dashboard-content">
-        <div class="cards-grid">
-          <!-- Card 1: Irrigation Advisor -->
-          <div class="card">
-            <div class="card-header">
-              <h3>Irrigation Advisor</h3>
-              <span id="irrig-mode-badge" class="illustrative-tag hidden"></span>
-            </div>
-
-            <div class="highlight-metrics">
-              <div class="metric-box">
-                <span class="metric-label">Weekly Requirement</span>
-                <span id="res-irrig-mm" class="metric-value">32.0 mm/wk</span>
-              </div>
-              <div class="metric-box">
-                <span class="metric-label">Next Irrigation Date</span>
-                <span id="res-irrig-date" class="metric-value">2026-11-20</span>
-              </div>
-            </div>
-
-            <table class="spec-table">
-              <tbody>
-                <tr>
-                  <td>Selected crop</td>
-                  <td id="spec-crop">Wheat</td>
-                </tr>
-                <tr>
-                  <td>Growth stage</td>
-                  <td id="spec-stage">Mid-season</td>
-                </tr>
-                <tr>
-                  <td>Forecast ET0</td>
-                  <td id="spec-et0">4.2 mm/day</td>
-                </tr>
-                <tr>
-                  <td>Crop coefficient (Kc)</td>
-                  <td id="spec-kc">1.15</td>
-                </tr>
-                <tr>
-                  <td>Estimated crop water use (ETc)</td>
-                  <td id="spec-etc">4.83 mm/day</td>
-                </tr>
-              </tbody>
-            </table>
-
-            <p class="advisory-note" id="spec-action">
-              <strong>Suggested action:</strong> Check field soil moisture and effective rainfall before scheduling irrigation; adjust for your irrigation system's efficiency.
-            </p>
-          </div>
-
-          <!-- Card 2: Crop Rotation Comparison -->
-          <div class="card">
-            <div class="card-header">
-              <h3>Crop Rotation Comparison</h3>
-              <span id="rotation-mode-badge" class="illustrative-tag hidden"></span>
-            </div>
-
-            <div class="sliders-container">
-              <div class="slider-group">
-                <label>
-                  <span>Soil Health</span>
-                  <span id="val-soil">0.35</span>
-                </label>
-                <input type="range" id="weight-soil" min="0" max="100" value="35" />
-              </div>
-              <div class="slider-group">
-                <label>
-                  <span>Water Saving</span>
-                  <span id="val-water">0.30</span>
-                </label>
-                <input type="range" id="weight-water" min="0" max="100" value="30" />
-              </div>
-              <div class="slider-group">
-                <label>
-                  <span>Climate Resilience</span>
-                  <span id="val-climate">0.25</span>
-                </label>
-                <input type="range" id="weight-climate" min="0" max="100" value="25" />
-              </div>
-            </div>
-
-            <div class="rotation-section">
-              <h4>Top 3 Ranked Sequences & Next Crops</h4>
-              <p id="rotation-baseline" class="advisory-note hidden"></p>
-              <ol id="rotation-list" class="rotation-list"></ol>
-            </div>
-          </div>
-
-          <!-- Card 3: Baseline Yield Estimate -->
-          <div class="card">
-            <div class="card-header">
-              <h3>Baseline Yield Estimate</h3>
-              <span id="res-confidence" class="confidence-badge confidence-medium">
-                Confidence: Medium
-              </span>
-            </div>
-
-            <div class="yield-main">
-              <span id="res-yield" class="yield-number">4,200</span>
-              <span class="yield-unit">kg / ha</span>
-            </div>
-
-            <div class="limitations-box">
-              <strong>Scientific Uncertainty & Limitations Note:</strong>
-              <p id="res-notes">
-                Prototype estimate combining NASA POWER soil moisture, MODIS NDVI, and regional baseline; subject to local cultivar variance.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <section class="charts-section">
-          <div class="section-title-row">
-            <h2>Earth Intelligence View (NASA POWER, MODIS NDVI & 7-Day Forecast)</h2>
-          </div>
-          <p class="sensor-caption">Time series below follow the selected map pin. The vulnerability view covers up to 365 daily observations; the climate chart shows the latest 30 days, NDVI the latest 60 days, and the forecast the next 7 days.</p>
-          <p id="trends-fallback-note" class="advisory-note hidden"></p>
-          <div class="charts-grid">
-            <div class="chart-card">
-              <h4>30-Day Temperature & Precipitation (NASA POWER)</h4>
-              <canvas id="climateChart"></canvas>
-            </div>
-            <div class="chart-card">
-              <h4>60-Day Vegetation Health (MODIS NDVI)</h4>
-              <canvas id="ndviChart"></canvas>
-            </div>
-            <div class="chart-card">
-              <h4>7-Day Weather Forecast (Open-Meteo)</h4>
-              <canvas id="forecastChart"></canvas>
-            </div>
-            <div class="chart-card chart-card-vulnerability">
-              <h4>365-Day Vulnerability Signal — click a day to inspect it on the map</h4>
-              <p id="vulnerability-chart-status" class="chart-empty-state hidden" role="status"></p>
-              <canvas id="vulnerabilityTrendChart"></canvas>
-            </div>
-          </div>
-          <section class="map-explorer-card" aria-labelledby="map-explorer-title">
-            <div class="map-explorer-header">
-              <div>
-                <h2 id="map-explorer-title">Vulnerability & trend map</h2>
-                <p>Scrub up to 365 daily observations for the selected point. Click a chart point or move the timeline to update the map and compare locations with data for that date.</p>
-              </div>
-              <span id="historical-map-layer-label" class="map-date-badge">Root-zone wetness</span>
-            </div>
-            <div class="map-explorer-controls">
-              <div class="map-metric-control">
-                <label for="historical-map-metric">Map layer</label>
-                <select id="historical-map-metric">
-                  <option value="water_stress">Low root-zone wetness (&lt;0.30)</option>
-                  <option value="heat">Hot days (daily maximum ≥35°C)</option>
-                  <option value="frost">Frost exposure (daily minimum ≤0°C)</option>
-                </select>
-              </div>
-              <div class="map-timeline-control">
-                <label for="historical-map-date">Observation date <output id="historical-map-date-label">Loading…</output></label>
-                <input id="historical-map-date" type="range" min="0" max="364" step="1" value="364" aria-label="Select a day in the latest year of daily observations" />
-              </div>
-            </div>
-            <p id="historical-map-status" class="map-data-status" role="status">Loading recent daily observations…</p>
-            <div class="selected-screening">
-              <div class="selected-screening-reading">
-                <span>Selected location</span>
-                <strong id="selected-screening-location">Loading…</strong>
-                <small><span id="selected-screening-metric">Root-zone wetness index</span>: <span id="selected-screening-reading">Loading…</span></small>
-              </div>
-              <div><span>Root-zone wetness change (period)</span><strong id="selected-screening-wetness-trend">—</strong></div>
-              <div><span>Hot days in period (≥35°C)</span><strong id="selected-screening-heat-days">—</strong></div>
-              <div><span>Frost days in period (≤0°C)</span><strong id="selected-screening-frost-days">—</strong></div>
-            </div>
-            <p class="map-data-limitation">
-              These are regional point samples, not field-boundary or within-field measurements. Nearby comparison points may only have recent observations.
-              Root-zone wetness is an index, not reservoir or groundwater storage. Erosion risk needs slope/soil data that this app does not have.
-            </p>
-            <div class="map-screening-legend" aria-label="Map screening legend">
-              <span><i class="risk-swatch risk-alert"></i>Threshold crossed</span>
-              <span><i class="risk-swatch risk-clear"></i>Threshold not crossed</span>
-              <span><i class="risk-swatch risk-unavailable"></i>Data unavailable</span>
-            </div>
-          </section>
-        </section>
-      </div>
-    </section>
-  </main>
-
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://unpkg.com/globe.gl@2.32.1/dist/globe.gl.min.js"></script>
-
   <script src="js/api.js"></script>
-  <script src="js/map.js"></script>
+  <script src="js/state.js"></script>
   <script src="js/globe.js"></script>
-  <script src="js/dashboard.js"></script>
 </body>
 </html>

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Noto+Sans+Arabic:wght@400;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <title>Field Planner — AgriScope</title>
+</head>
+<body>
+  <div id="app-header-mount"></div>
+
+  <main class="page-shell">
+    <div class="page-header">
+      <div>
+        <span class="page-eyebrow">Agronomic Decision Engine</span>
+        <h1>Field Planner</h1>
+        <p>Click anywhere on the satellite map or select a reference region to evaluate expected yield, weekly irrigation demand, and crop rotations.</p>
+      </div>
+      <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+        <a href="map.html" class="btn btn-ghost">Full Vulnerability Map</a>
+        <a href="advisor.html" class="btn btn-secondary">Ask AI Advisor →</a>
+      </div>
+    </div>
+
+    <div class="workspace-split">
+      <aside class="card sticky-panel">
+        <h2 class="card-title" style="margin-bottom:0.65rem;">1. Select Region</h2>
+        <div id="planner-region-presets" class="region-list-scroll" style="max-height:210px;"></div>
+
+        <hr class="panel-divider" />
+
+        <form id="farmer-form">
+          <h2 class="card-title" style="margin-bottom:0.85rem;">2. Field Parameters</h2>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label for="lat">Latitude</label>
+              <input type="number" id="lat" class="form-control" step="0.0001" required />
+            </div>
+            <div class="form-group">
+              <label for="lon">Longitude</label>
+              <input type="number" id="lon" class="form-control" step="0.0001" required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="crop">Current Crop</label>
+            <select id="crop" class="form-control" required></select>
+            <small id="crop-model-coverage" class="helper-text hidden"></small>
+          </div>
+
+          <div class="form-group">
+            <label for="previous_crop">Previous Season Crop (optional)</label>
+            <select id="previous_crop" class="form-control"></select>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label for="field_size_ha">Field Size (ha)</label>
+              <input type="number" id="field_size_ha" class="form-control" step="0.1" min="0.1" required />
+            </div>
+            <div class="form-group">
+              <label for="planting_date">Planting Date</label>
+              <input type="date" id="planting_date" class="form-control" required />
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label for="soil_texture">Soil Texture</label>
+              <select id="soil_texture" class="form-control">
+                <option value="clay">Alluvial / Silty Clay</option>
+                <option value="loam">Sandy / Clay Loam</option>
+                <option value="sandy">Sandy</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="irrigation_availability">Irrigation Access</label>
+              <select id="irrigation_availability" class="form-control">
+                <option value="available">Available</option>
+                <option value="limited">Limited</option>
+                <option value="none">None / Rainfed</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="planning_horizon_seasons">Planning Horizon (seasons)</label>
+            <input type="number" id="planning_horizon_seasons" class="form-control" min="1" max="6" required />
+          </div>
+
+          <button type="submit" id="submit-btn" class="btn btn-primary btn-block" style="margin-top:0.4rem;">
+            Analyze Field
+          </button>
+        </form>
+      </aside>
+
+      <section>
+        <!-- Enhanced Interactive Satellite Field Map -->
+        <div class="planner-map-wrapper">
+          <div class="geo-map-shell">
+            <div class="map-hud-top">
+              <div class="map-glass-pill">
+                <strong id="planner-map-location">Nile Delta</strong>
+                <span id="planner-map-coords" class="coords">31.110°, 30.940°</span>
+              </div>
+              <div class="map-hud-controls">
+                <div id="planner-basemap-switcher" class="basemap-switcher" role="group" aria-label="Basemap style">
+                  <button type="button" class="basemap-btn active" data-basemap="satellite">Satellite</button>
+                  <button type="button" class="basemap-btn" data-basemap="terrain">Terrain</button>
+                  <button type="button" class="basemap-btn" data-basemap="light">Light</button>
+                  <button type="button" class="basemap-btn" data-basemap="dark">Dark</button>
+                </div>
+                <button type="button" id="expand-planner-map-btn" class="map-icon-btn">Expand</button>
+              </div>
+            </div>
+            <div id="planner-map" class="geo-map-canvas compact"></div>
+          </div>
+        </div>
+
+        <div id="loading-state" class="banner banner-info hidden">Calculating irrigation, rotation scores, and yield estimates…</div>
+        <div id="error-state" class="banner banner-error hidden"></div>
+
+        <div class="kpi-strip">
+          <div class="kpi-card">
+            <span class="kpi-label">Expected Yield</span>
+            <strong id="kpi-yield" class="kpi-value">—</strong>
+            <span id="kpi-yield-sub" class="kpi-sub">Confidence: —</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Weekly Irrigation</span>
+            <strong id="kpi-irrig" class="kpi-value">—</strong>
+            <span id="kpi-irrig-sub" class="kpi-sub">Next date: —</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Active Crop</span>
+            <strong id="kpi-crop" class="kpi-value">—</strong>
+            <span id="kpi-crop-sub" class="kpi-sub">—</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Top Rotation Score</span>
+            <strong id="kpi-rotation" class="kpi-value">—</strong>
+            <span id="kpi-rotation-sub" class="kpi-sub">—</span>
+          </div>
+        </div>
+
+        <div class="planner-cards">
+          <article class="card yield-hero col-5">
+            <div class="card-header">
+              <h2 class="card-title">Expected Yield</h2>
+              <span id="res-confidence" class="badge badge-medium">Confidence: Medium</span>
+            </div>
+            <div>
+              <span id="res-yield" class="yield-hero-num">—</span>
+              <span class="yield-hero-unit">kg / ha</span>
+            </div>
+            <div class="yield-notes">
+              <strong>Model Coverage &amp; Limitations</strong>
+              <p id="res-notes">Run an analysis to view regional model notes and assumptions.</p>
+            </div>
+          </article>
+
+          <article class="card col-7">
+            <div class="card-header">
+              <h2 class="card-title">Irrigation Advisor</h2>
+              <span id="irrig-mode-badge" class="badge badge-medium hidden"></span>
+            </div>
+
+            <div class="metric-pair">
+              <div class="metric-tile">
+                <span>Weekly water need</span>
+                <strong id="res-irrig-mm">—</strong>
+              </div>
+              <div class="metric-tile">
+                <span>Suggested next date</span>
+                <strong id="res-irrig-date">—</strong>
+              </div>
+            </div>
+
+            <table class="spec-table">
+              <tbody>
+                <tr><td>Crop</td><td id="spec-crop">—</td></tr>
+                <tr><td>Growth stage</td><td id="spec-stage">—</td></tr>
+                <tr><td>Reference ET₀</td><td id="spec-et0">—</td></tr>
+                <tr><td>Crop coefficient (Kc)</td><td id="spec-kc">—</td></tr>
+                <tr><td>Crop water use (ETc)</td><td id="spec-etc">—</td></tr>
+              </tbody>
+            </table>
+
+            <p class="callout">
+              <strong>Field check:</strong> Verify in-field soil moisture and effective rainfall before scheduling irrigation; adjust volumes for system efficiency.
+            </p>
+          </article>
+
+          <article class="card col-12">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Crop Rotation Comparison</h2>
+                <p class="card-subtitle">Adjust priority weights to re-rank multi-season sequences (diversity fixed at 0.10).</p>
+              </div>
+              <span id="rotation-mode-badge" class="badge badge-medium hidden"></span>
+            </div>
+
+            <div class="rotation-layout">
+              <div class="slider-panel">
+                <div class="slider-row">
+                  <label for="weight-soil"><span>Soil Health</span><span id="val-soil">0.35</span></label>
+                  <input type="range" id="weight-soil" min="0" max="100" value="35" />
+                </div>
+                <div class="slider-row">
+                  <label for="weight-water"><span>Water Saving</span><span id="val-water">0.30</span></label>
+                  <input type="range" id="weight-water" min="0" max="100" value="30" />
+                </div>
+                <div class="slider-row">
+                  <label for="weight-climate"><span>Climate Resilience</span><span id="val-climate">0.25</span></label>
+                  <input type="range" id="weight-climate" min="0" max="100" value="25" />
+                </div>
+              </div>
+
+              <div>
+                <p id="rotation-baseline" class="callout hidden" style="margin-bottom:0.85rem;"></p>
+                <ol id="rotation-list" class="rotation-list"></ol>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="app-footer-mount"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="js/map-utils.js"></script>
+  <script src="js/planner.js"></script>
+</body>
+</html>

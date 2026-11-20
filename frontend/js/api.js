@@ -12,11 +12,21 @@ const KC_TABLE = {
   rice: { kc: 1.20, stage: "Mid-season" }
 };
 
+const ALL_CROPS = [
+  { value: "wheat", label: "Wheat (قمح)" },
+  { value: "maize", label: "Maize (ذرة)" },
+  { value: "cotton", label: "Cotton (قطن)" },
+  { value: "tomato", label: "Tomato (طماطم)" },
+  { value: "sugarcane", label: "Sugarcane (قصب السكر)" },
+  { value: "date_palm", label: "Date Palm (نخيل التمر)" },
+  { value: "rice", label: "Rice (أرز)" }
+];
+
 const FALLBACK_REGIONS = [
-  { id: "nile_delta", name: "Nile Delta (Kafr El-Sheikh)", lat: 31.11, lon: 30.94, default_crop: "wheat", soil: "Alluvial Clay" },
-  { id: "fayoum", name: "Fayoum Oasis", lat: 29.31, lon: 30.84, default_crop: "tomato", soil: "Sandy Loam" },
-  { id: "upper_egypt", name: "Upper Egypt (Minya)", lat: 28.10, lon: 30.75, default_crop: "sugarcane", soil: "Silty Clay" },
-  { id: "new_valley", name: "New Valley (Kharga)", lat: 25.44, lon: 30.55, default_crop: "date_palm", soil: "Sandy" },
+  { id: "nile_delta", name: "Nile Delta (Kafr El-Sheikh)", lat: 31.11, lon: 30.94, country: "EGYPT", default_crop: "wheat", soil: "Alluvial Clay" },
+  { id: "fayoum", name: "Fayoum Oasis", lat: 29.31, lon: 30.84, country: "EGYPT", default_crop: "tomato", soil: "Sandy Loam" },
+  { id: "upper_egypt", name: "Upper Egypt (Minya)", lat: 28.10, lon: 30.75, country: "EGYPT", default_crop: "sugarcane", soil: "Silty Clay" },
+  { id: "new_valley", name: "New Valley (Kharga)", lat: 25.44, lon: 30.55, country: "EGYPT", default_crop: "date_palm", soil: "Sandy" },
   { id: "iowa", name: "Ames, Iowa", lat: 42.03, lon: -93.62, country: "USA", default_crop: "maize", supported_crops: ["wheat", "maize", "rice", "tomato", "cotton", "sugarcane", "date_palm"], suitability_crops: ["maize", "cotton"] },
   { id: "henan", name: "Zhengzhou, Henan", lat: 34.75, lon: 113.62, country: "CHINA", default_crop: "wheat", supported_crops: ["wheat", "maize", "rice", "tomato", "cotton", "sugarcane"], suitability_crops: ["wheat", "maize", "rice"] }
 ];
@@ -25,21 +35,24 @@ function setApiStatus(isLive) {
   const badge = document.getElementById("api-status");
   if (!badge) return;
   if (isLive) {
-    badge.textContent = "Backend Connected (127.0.0.1:8000)";
-    badge.className = "status-badge status-live";
+    badge.textContent = "Backend live";
+    badge.className = "status-pill status-live";
   } else {
-    badge.textContent = "Contract Stub Mode (Local Fallback)";
-    badge.className = "status-badge status-mock";
+    badge.textContent = "Offline demo";
+    badge.className = "status-pill status-mock";
   }
 }
 
 async function checkBackendHealth() {
   try {
     const res = await fetch(`${API_BASE_URL}/health`);
-    if (res.ok) setApiStatus(true);
-  } catch (_) {
-    setApiStatus(false);
-  }
+    if (res.ok) {
+      setApiStatus(true);
+      return true;
+    }
+  } catch (_) {}
+  setApiStatus(false);
+  return false;
 }
 
 async function fetchRegions() {
@@ -49,10 +62,10 @@ async function fetchRegions() {
     const data = await res.json();
     setApiStatus(true);
     return data;
-  } catch (err) {
+  } catch (_) {
     setApiStatus(false);
     try {
-      const localRes = await fetch("../data/reference/regions.json");
+      const localRes = await fetch("../data/processed/reference/regions.json");
       if (localRes.ok) return await localRes.json();
     } catch (_) {}
     return FALLBACK_REGIONS;
@@ -70,7 +83,7 @@ async function postRecommendation(payload) {
     const data = await res.json();
     setApiStatus(true);
     return { data, isLive: true };
-  } catch (err) {
+  } catch (_) {
     setApiStatus(false);
     return { data: buildFallbackRecommendation(payload), isLive: false };
   }
@@ -102,6 +115,7 @@ async function fetchTelemetryStatus(deviceId) {
       `${API_BASE_URL}/api/telemetry/${encodeURIComponent(deviceId)}/status`
     );
     if (!res.ok) throw new Error("Backend telemetry status error");
+    setApiStatus(true);
     return await res.json();
   } catch (_) {
     return { online: false, last_seen: null, reading: null };
@@ -121,7 +135,7 @@ async function postDeviceCommand(deviceId, irrigate, durationSec = 5) {
   return await res.json();
 }
 
-async function fetchTrends(lat, lon, historyDays = 30) {
+async function fetchTrends(lat, lon, historyDays = 365) {
   const fallback = buildFallbackTrends(lat, lon);
   try {
     const res = await fetch(
@@ -160,7 +174,7 @@ async function fetchTrends(lat, lon, historyDays = 30) {
       ],
       offline: false
     };
-  } catch (err) {
+  } catch (_) {
     setApiStatus(false);
     return {
       ...fallback,
@@ -177,7 +191,8 @@ function buildFallbackRecommendation(payload) {
     cotton: 3400.0,
     tomato: 38000.0,
     sugarcane: 110000.0,
-    date_palm: 14000.0
+    date_palm: 14000.0,
+    rice: 8900.0
   };
   const base = refYields[(payload.crop || "wheat").toLowerCase()] || 4500.0;
   const estYield = Math.round(base * (0.7 + 0.48 * 0.6));
@@ -190,7 +205,7 @@ function buildFallbackRecommendation(payload) {
 
   return {
     irrigation_mm_per_week: 32.0,
-    next_irrigation_date: "2026-11-20",
+    next_irrigation_date: "2026-11-24",
     rotation_recommendations: baseRotations,
     yield_estimate_kg_ha: estYield,
     confidence: "Medium",

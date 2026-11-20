@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Noto+Sans+Arabic:wght@400;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="css/style.css" />
+  <title>Field Sensors (IoT) — AgriScope</title>
+</head>
+<body>
+  <div id="app-header-mount"></div>
+
+  <main class="page-shell">
+    <div class="page-header">
+      <div>
+        <span class="page-eyebrow">Optional ESP32 Hardware Integration</span>
+        <h1>Field Sensors &amp; Pump Control</h1>
+        <p>Compare live ground-sensor soil moisture against NASA satellite estimates and send irrigation commands to a connected ESP32 node.</p>
+      </div>
+      <button type="button" id="refresh-telemetry-btn" class="btn btn-secondary">Refresh Readings</button>
+    </div>
+
+    <div class="telemetry-grid">
+      <aside class="card">
+        <h2 class="card-title" style="margin-bottom:0.85rem;">Node Configuration</h2>
+
+        <div class="form-group">
+          <label style="display:flex; align-items:center; gap:0.55rem; cursor:pointer;">
+            <input type="checkbox" id="use-live-sensor" style="width:16px; height:16px; accent-color:var(--brand);" />
+            <span>Include live sensor in Field Planner &amp; AI Advisor</span>
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label for="device-id">ESP32 Device ID</label>
+          <input type="text" id="device-id" class="form-control" value="demo-esp32-01" />
+        </div>
+
+        <div class="form-group">
+          <label style="display:flex; align-items:center; gap:0.55rem; cursor:pointer;">
+            <input type="checkbox" id="auto-poll" style="width:16px; height:16px; accent-color:var(--brand);" />
+            <span>Auto-refresh every 5 seconds</span>
+          </label>
+        </div>
+
+        <hr class="panel-divider" />
+
+        <h3 class="card-title" style="margin-bottom:0.7rem;">Pump Command</h3>
+        <div class="form-group">
+          <label for="pump-duration">Irrigation Duration (seconds)</label>
+          <input type="number" id="pump-duration" class="form-control" min="1" max="120" value="5" />
+        </div>
+        <button type="button" id="irrigate-now-btn" class="btn btn-primary btn-block">Trigger Irrigation Pump</button>
+        <div id="sensor-command-status" class="banner hidden" style="margin-top:0.8rem; margin-bottom:0;"></div>
+      </aside>
+
+      <section style="display:flex; flex-direction:column; gap:1.25rem;">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Satellite vs. Ground Sensor Comparison</h2>
+            <span style="display:inline-flex; align-items:center; gap:0.5rem; font-size:0.85rem; font-weight:650;">
+              <span id="sensor-online-dot" class="pulse-dot offline"></span>
+              <span id="sensor-online-label">Live Node Offline</span>
+            </span>
+          </div>
+
+          <div class="sensor-gauge-grid">
+            <div class="gauge-card">
+              <span class="kpi-label">NASA Satellite Soil Moisture</span>
+              <div id="satellite-soil-moisture" class="gauge-value">—</div>
+              <div class="gauge-track"><div id="sat-gauge-fill" class="gauge-fill"></div></div>
+            </div>
+            <div class="gauge-card">
+              <span class="kpi-label">Live ESP32 Ground Sensor</span>
+              <div id="live-soil-moisture" class="gauge-value" style="color:var(--ok);">—</div>
+              <div class="gauge-track"><div id="live-gauge-fill" class="gauge-fill live"></div></div>
+            </div>
+          </div>
+
+          <div class="metric-pair" style="margin-bottom:0.65rem;">
+            <div class="screening-tile">
+              <span>Field Air Temperature (BME280)</span>
+              <strong id="sensor-env-temp">—</strong>
+            </div>
+            <div class="screening-tile">
+              <span>Relative Humidity (BME280)</span>
+              <strong id="sensor-env-hum">—</strong>
+            </div>
+          </div>
+
+          <p id="sensor-last-seen" class="helper-text">No telemetry packets received yet.</p>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title" style="margin-bottom:0.45rem;">No Physical Hardware? Run the Simulator</h3>
+          <p class="card-subtitle" style="margin-bottom:0.75rem;">Test live soil-moisture streaming and pump command polling locally using the included backend simulator:</p>
+          <pre class="code-block">cd backend
+python simulate_device.py</pre>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="app-footer-mount"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="js/telemetry-page.js"></script>
+</body>
+</html>

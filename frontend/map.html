@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Noto+Sans+Arabic:wght@400;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <title>Vulnerability &amp; Climate Map — AgriScope</title>
+</head>
+<body>
+  <div id="app-header-mount"></div>
+
+  <main class="page-shell">
+    <div class="page-header">
+      <div>
+        <span class="page-eyebrow">Earth Observation Explorer</span>
+        <h1>Vulnerability &amp; Trend Map</h1>
+        <p>Switch between Satellite, Terrain, Light, and Dark basemaps. Click any point or region to scrub 365 days of NASA POWER wetness, heat, and frost signals.</p>
+      </div>
+      <div id="map-region-chips" class="region-chips"></div>
+    </div>
+
+    <div id="map-loading" class="banner banner-info hidden">Loading NASA POWER, MODIS NDVI, and Open-Meteo time series…</div>
+    <div id="trends-fallback-note" class="banner banner-warn hidden"></div>
+
+    <div class="map-layout">
+      <section id="vuln-map-shell" class="geo-map-shell">
+        <div class="map-hud-top">
+          <div class="map-glass-pill">
+            <strong id="map-hud-location">Nile Delta</strong>
+            <span id="map-hud-coords" class="coords">31.110°, 30.940°</span>
+          </div>
+
+          <div class="map-hud-controls">
+            <div id="vuln-basemap-switcher" class="basemap-switcher" role="group" aria-label="Basemap style">
+              <button type="button" class="basemap-btn active" data-basemap="satellite">Satellite</button>
+              <button type="button" class="basemap-btn" data-basemap="terrain">Terrain</button>
+              <button type="button" class="basemap-btn" data-basemap="light">Light</button>
+              <button type="button" class="basemap-btn" data-basemap="dark">Dark</button>
+            </div>
+            <button type="button" id="center-pin-btn" class="map-icon-btn">Center Pin</button>
+            <button type="button" id="fit-regions-btn" class="map-icon-btn">All Regions</button>
+            <button type="button" id="fullscreen-map-btn" class="map-icon-btn">Fullscreen</button>
+          </div>
+        </div>
+
+        <div id="map" class="geo-map-canvas"></div>
+
+        <div class="map-hud-bottom">
+          <div class="map-hud-bottom-grid">
+            <div>
+              <label for="historical-map-metric">Vulnerability Layer</label>
+              <select id="historical-map-metric">
+                <option value="water_stress">Low root-zone wetness (&lt;0.30)</option>
+                <option value="heat">Hot days (daily max ≥35°C)</option>
+                <option value="frost">Frost exposure (daily min ≤0°C)</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="historical-map-date">
+                <span>Observation Timeline (365d)</span>
+                <output id="historical-map-date-label" style="color:#e8c15a; font-variant-numeric:tabular-nums;">Loading…</output>
+              </label>
+              <input id="historical-map-date" type="range" min="0" max="364" step="1" value="364" />
+            </div>
+
+            <div>
+              <button type="button" id="play-timeline-btn" class="btn btn-primary btn-sm" style="min-width:92px;">Play</button>
+            </div>
+          </div>
+
+          <div class="map-hud-bottom-meta">
+            <span id="historical-map-status" role="status">Loading daily observations…</span>
+            <div class="legend-row">
+              <span class="legend-item"><i class="risk-swatch risk-alert"></i>Threshold crossed</span>
+              <span class="legend-item"><i class="risk-swatch risk-clear"></i>Within normal range</span>
+              <span class="legend-item"><i class="risk-swatch risk-unavailable"></i>Data unavailable</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screening-grid">
+        <div class="screening-tile">
+          <span>Selected Location</span>
+          <strong id="selected-screening-location">Loading…</strong>
+          <small><span id="selected-screening-metric">Root-zone wetness</span>: <span id="selected-screening-reading">—</span></small>
+        </div>
+        <div class="screening-tile">
+          <span>Root-Zone Wetness Change</span>
+          <strong id="selected-screening-wetness-trend">—</strong>
+          <small>Across loaded period</small>
+        </div>
+        <div class="screening-tile">
+          <span>Heat Exposure Days</span>
+          <strong id="selected-screening-heat-days">—</strong>
+          <small>Daily max ≥ 35°C</small>
+        </div>
+        <div class="screening-tile">
+          <span>Frost Exposure Days</span>
+          <strong id="selected-screening-frost-days">—</strong>
+          <small>Daily min ≤ 0°C</small>
+        </div>
+      </section>
+
+      <section class="charts-grid">
+        <div class="chart-box full-span">
+          <h3>Past Year Vulnerability Signal — Click any day to sync map</h3>
+          <p id="vulnerability-chart-status" class="chart-empty hidden" role="status"></p>
+          <canvas id="vulnerabilityTrendChart"></canvas>
+        </div>
+        <div class="chart-box">
+          <h3>Last 30 Days: Temp &amp; Rain (NASA POWER)</h3>
+          <canvas id="climateChart"></canvas>
+        </div>
+        <div class="chart-box">
+          <h3>Last 60 Days: Vegetation Health (MODIS NDVI)</h3>
+          <canvas id="ndviChart"></canvas>
+        </div>
+        <div class="chart-box">
+          <h3>Next 7 Days: Forecast (Open-Meteo)</h3>
+          <canvas id="forecastChart"></canvas>
+        </div>
+      </section>
+
+      <p class="callout">
+        <strong>Scientific scope:</strong> Map readings are regional point samples rather than field-boundary measurements. Root-zone wetness is a satellite-derived index, not direct groundwater or reservoir storage.
+      </p>
+    </div>
+  </main>
+
+  <div id="app-footer-mount"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="js/map-utils.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/map-page.js"></script>
+</body>
+</html>

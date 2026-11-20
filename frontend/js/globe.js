@@ -1,20 +1,35 @@
 let globeInstance = null;
+let landingRegions = [];
 
-function initLandingGlobe(regions, onRegionSelectedFromGlobe) {
+document.addEventListener("DOMContentLoaded", async () => {
+  checkBackendHealth();
+  landingRegions = await fetchRegions();
+  initLandingEarth(landingRegions);
+
+  document.getElementById("enter-planner-btn").addEventListener("click", () => {
+    const target = landingRegions[0] || getFieldState();
+    zoomIntoEarthAndNavigate(target, "planner.html");
+  });
+
+  document.getElementById("enter-map-btn").addEventListener("click", () => {
+    const target = landingRegions[0] || getFieldState();
+    zoomIntoEarthAndNavigate(target, "map.html");
+  });
+});
+
+function initLandingEarth(regions) {
   const container = document.getElementById("globe-container");
-  const overlay = document.getElementById("globe-overlay");
-  if (!container || typeof Globe === "undefined") {
-    if (overlay) overlay.classList.add("fade-out");
-    return;
-  }
+  if (!container || typeof Globe === "undefined") return;
 
   const pointsData = (regions || []).map((r) => ({
     ...r,
-    size: 0.45,
+    size: 0.48,
     color: "#4ade80"
   }));
 
   globeInstance = Globe()(container)
+    .width(window.innerWidth)
+    .height(window.innerHeight)
     .globeImageUrl("https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg")
     .bumpImageUrl("https://unpkg.com/three-globe/example/img/earth-topology.png")
     .backgroundImageUrl("https://unpkg.com/three-globe/example/img/night-sky.png")
@@ -33,7 +48,7 @@ function initLandingGlobe(regions, onRegionSelectedFromGlobe) {
     .ringColor(() => "#22c55e")
     .ringMaxRadius(3.5)
     .ringPropagationSpeed(2.0)
-    .ringRepeatPeriod(900)
+    .ringRepeatPeriod(950)
     .labelsData(pointsData)
     .labelLat("lat")
     .labelLng("lon")
@@ -42,31 +57,16 @@ function initLandingGlobe(regions, onRegionSelectedFromGlobe) {
     .labelDotRadius(0.45)
     .labelColor(() => "#ffffff")
     .labelResolution(2)
-    .onPointClick((point) => {
-      zoomGlobeAndTransition(point, onRegionSelectedFromGlobe);
-    })
-    .onLabelClick((point) => {
-      zoomGlobeAndTransition(point, onRegionSelectedFromGlobe);
-    });
+    .onPointClick((point) => zoomIntoEarthAndNavigate(point, "planner.html"))
+    .onLabelClick((point) => zoomIntoEarthAndNavigate(point, "planner.html"));
 
-  globeInstance.pointOfView({ lat: 25, lng: 0, altitude: 2.4 }, 0);
+  globeInstance.pointOfView({ lat: 26, lng: 25, altitude: 2.35 }, 0);
 
   const controls = globeInstance.controls();
   if (controls) {
     controls.autoRotate = true;
-    controls.autoRotateSpeed = 0.45;
+    controls.autoRotateSpeed = 0.42;
   }
-
-  document.getElementById("enter-dashboard-btn").addEventListener("click", () => {
-    const defaultRegion = pointsData[0] || { lat: 31.11, lon: 30.94 };
-    zoomGlobeAndTransition(defaultRegion, onRegionSelectedFromGlobe);
-  });
-
-  document.getElementById("reopen-globe-btn").addEventListener("click", () => {
-    overlay.classList.remove("fade-out");
-    globeInstance.pointOfView({ lat: 25, lng: 0, altitude: 2.4 }, 900);
-    if (controls) controls.autoRotate = true;
-  });
 
   window.addEventListener("resize", () => {
     if (globeInstance) {
@@ -76,25 +76,30 @@ function initLandingGlobe(regions, onRegionSelectedFromGlobe) {
   });
 }
 
-function zoomGlobeAndTransition(targetRegion, callback) {
-  const overlay = document.getElementById("globe-overlay");
-  if (!globeInstance || !overlay) return;
+function zoomIntoEarthAndNavigate(targetRegion, destinationUrl) {
+  if (targetRegion && targetRegion.lat !== undefined && targetRegion.lon !== undefined) {
+    applyRegionToState(targetRegion);
+  }
+
+  const stage = document.getElementById("landing-stage");
+  if (!globeInstance) {
+    window.location.href = destinationUrl;
+    return;
+  }
 
   const controls = globeInstance.controls();
   if (controls) controls.autoRotate = false;
 
   globeInstance.pointOfView(
-    { lat: targetRegion.lat, lng: targetRegion.lon, altitude: 0.32 },
-    1100
+    { lat: targetRegion.lat, lng: targetRegion.lon, altitude: 0.30 },
+    950
   );
 
   setTimeout(() => {
-    overlay.classList.add("fade-out");
-    if (callback && targetRegion.id) {
-      callback(targetRegion);
-    }
-    if (typeof mapInstance !== "undefined" && mapInstance) {
-      setTimeout(() => mapInstance.invalidateSize(), 200);
-    }
-  }, 1150);
+    if (stage) stage.classList.add("transitioning");
+  }, 680);
+
+  setTimeout(() => {
+    window.location.href = destinationUrl;
+  }, 1050);
 }
